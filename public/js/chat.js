@@ -81,14 +81,14 @@ function localAnswer(q) {
     const evs = sorted.filter((e) => e.date >= range[0] && e.date <= range[1] && e.type !== 'class');
     return `Here's what's on ${range[2]}:\n${list(evs)}`;
   }
-  return `I'm in **offline mode**, so I can answer schedule questions like *“what's due this week?”* or *“when are my exams?”*.\n\nAdd an \`ANTHROPIC_API_KEY\` or \`OPENAI_API_KEY\` to \`.env\` to unlock full answers, explanations, and quizzes.`;
+  return `I'm in **offline mode**, so I can answer schedule questions like *“what's due this week?”* or *“when are my exams?”*.\n\nAdd \`KIRO_API_KEY\` (or an Anthropic/OpenAI key) to \`.env\` to unlock full answers, explanations, and quizzes.`;
 }
 
 export function render(el) {
   const s = store.get();
   el.innerHTML = `
     <div class="page-head view-enter">
-      <div><h1>Ask <em>anything</em></h1><p>${aiEnabled() ? 'Knows your calendar, courses and notes. Ask it to explain, plan, quiz you, or add events.' : 'Offline mode: schedule questions only. Add an API key for the full assistant.'}</p></div>
+      <div><h1>Ask <em>anything</em></h1><p>${aiEnabled() ? 'Knows your calendar, courses and notes. Ask it to explain, plan, quiz you, or add events.' : 'Offline mode: schedule questions only. Connect Kiro (or another AI key) for the full assistant.'}</p></div>
       <button class="btn ghost sm" id="clear">Clear chat</button>
     </div>
     <div class="card chat view-enter">

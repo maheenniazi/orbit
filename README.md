@@ -14,8 +14,20 @@ It has no dependencies and works offline. Adding keys turns on the smart feature
 
 | `.env` key | Unlocks |
 |---|---|
-| `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` | AI syllabus parsing, the full chat assistant, AI-written notes |
+| `KIRO_API_KEY` **or** `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | AI syllabus parsing, the full chat assistant, AI-written notes |
 | `SPOTIFY_CLIENT_ID` | Account connect: now playing, playback controls, your own playlists |
+
+### Using Kiro as the AI
+
+The app can run all of its AI (chat, notes, syllabus parsing) through your Kiro subscription using [Kiro CLI headless mode](https://kiro.dev/docs/cli/headless/).
+
+1. Install Kiro CLI: `curl -fsSL https://cli.kiro.dev/install | bash` (macOS/Linux). Windows users can install from PowerShell (see kiro.dev/cli).
+2. Generate an API key in your Kiro account settings. API keys are available on the Pro, Pro+ and Power plans.
+3. Put `KIRO_API_KEY=ksk_...` in `.env` and restart the server. The startup log should show `AI: kiro`.
+
+If you'd rather not use a key, run `kiro-cli login` once and set `AI_PROVIDER=kiro` instead. If `kiro-cli` isn't on your PATH, set `KIRO_CLI_PATH`.
+
+Kiro runs as the `study-os` agent in `kiro-agent/`, which has **no tools**, so it can only reply with text and can't run commands or touch your files. Each AI request uses Kiro credits from your plan. Replies take a few seconds longer than a direct API call because the CLI starts up for each one.
 
 **Spotify setup:** create an app at [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard), add the redirect URI `http://127.0.0.1:3000/callback`, and copy the Client ID. The OAuth flow is PKCE, so you don't need a client secret. Remote playback control needs Spotify Premium. The embedded player works without any of this.
 

@@ -238,7 +238,7 @@ export function render(el) {
             <label class="field" style="max-width:160px">Code<input id="ccode" placeholder="e.g. CHEM 101"></label>
           </div>
           <div class="row spread" style="margin-top:14px">
-            <label class="check small ${ai ? '' : 'faint'}"><input type="checkbox" id="useai" ${ai ? 'checked' : 'disabled'}> Smart AI parsing ${ai ? '' : '(add an API key to enable)'}</label>
+            <label class="check small ${ai ? '' : 'faint'}"><input type="checkbox" id="useai" ${ai ? 'checked' : 'disabled'}> Smart AI parsing ${ai ? '' : '(connect Kiro or an AI key to enable)'}</label>
             <button class="btn" id="go">✦ Import to calendar</button>
           </div>
         </div>

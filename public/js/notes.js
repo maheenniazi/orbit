@@ -1,6 +1,6 @@
 // Notes: generate structured notes from lecture text / slides / readings (AI or offline), edit in markdown.
 import { store, getCourse, courseColor } from './store.js';
-import { aiEnabled, ask } from './ai.js';
+import { aiEnabled, ask, getStatus } from './ai.js';
 import { esc, md, uid, fmtDate, todayISO } from './util.js';
 import { modal, toast, readFileText, spinner } from './ui.js';
 import { askAbout } from './chat.js';
@@ -156,7 +156,7 @@ export function render(el) {
       <div class="row spread">
         <div class="seg" id="g-style">${Object.entries(STYLES).map(([k, v], i) => `<button data-s="${k}" class="${i === 0 ? 'on' : ''}">${v}</button>`).join('')}</div>
       </div>
-      <div class="row spread"><span class="small muted">${aiEnabled() ? 'Uses AI ✦' : 'Offline mode: extractive notes. Add an API key for AI-written notes.'}</span><button class="btn" id="g-go">Generate</button></div>
+      <div class="row spread"><span class="small muted">${aiEnabled() ? `Uses ${getStatus().provider === 'kiro' ? 'Kiro' : 'AI'} ✦ (can take ~10–30s)` : 'Offline mode: extractive notes. Connect Kiro or an AI key for AI-written notes.'}</span><button class="btn" id="g-go">Generate</button></div>
       <div id="g-status"></div>`, {
       wide: true,
       onMount(body, close) {
