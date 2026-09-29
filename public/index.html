@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Study OS</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="bg-blobs" aria-hidden="true"><span></span><span></span><span></span></div>
+
+  <aside class="sidebar">
+    <a class="brand" href="#/dashboard"><span class="logo">✦</span><span class="brand-name" id="brand-name">Study OS</span></a>
+
+    <nav class="nav">
+      <a href="#/dashboard" data-route="dashboard"><span class="ico">⌂</span>Home</a>
+      <a href="#/calendar" data-route="calendar"><span class="ico">▦</span>Calendar</a>
+      <a href="#/import" data-route="import"><span class="ico">⇪</span>Syllabus import</a>
+      <a href="#/notes" data-route="notes"><span class="ico">✎</span>Notes</a>
+      <a href="#/chat" data-route="chat"><span class="ico">✧</span>Ask</a>
+      <a href="#/focus" data-route="focus"><span class="ico">◉</span>Focus</a>
+      <a href="#/settings" data-route="settings"><span class="ico">⚙</span>Settings</a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <a class="focus-pill" id="focus-pill" href="#/focus"></a>
+      <div class="mini-timer" id="mini-timer" hidden></div>
+      <div class="player-dock" id="player-dock"></div>
+    </div>
+  </aside>
+
+  <main class="main" id="view"></main>
+
+  <div id="toasts" class="toasts"></div>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

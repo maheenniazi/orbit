@@ -1,0 +1,95 @@
+// Settings: profile, theme, automation, courses, playlists, integrations, data.
+import { store, COURSE_COLORS } from './store.js';
+import { getStatus } from './ai.js';
+import { esc } from './util.js';
+import { toast } from './ui.js';
+import { connect, disconnect, isConnected, parsePlaylistId, loadDock } from './spotify.js';
+
+export function render(el) {
+  const draw = () => {
+    const s = store.get();
+    const st = getStatus();
+    const labels = { chill: 'Cruise / Warm-up', rampup: 'Ramp-up', lockin: 'Lock-in', examday: 'Exam day' };
+    el.innerHTML = `
+      <div class="page-head"><div><h1>Settings</h1><p>Make it yours.</p></div></div>
+      <div class="grid cols-3">
+        <div class="card stack">
+          <h3>You</h3>
+          <label class="field">Your name<input id="name" value="${esc(s.settings.name)}" placeholder="What should we call you?"></label>
+          <div class="row spread"><span>Theme</span><div class="seg" id="theme"><button data-t="dark" class="${s.settings.theme === 'dark' ? 'on' : ''}">Dark</button><button data-t="light" class="${s.settings.theme === 'light' ? 'on' : ''}">Light</button></div></div>
+        </div>
+        <div class="card stack">
+          <h3>Automation</h3>
+          <label class="check"><input type="checkbox" id="autoFocus" ${s.settings.autoFocus ? 'checked' : ''}> Auto-escalate focus mode as exams approach</label>
+          <label class="check"><input type="checkbox" id="autoPlan" ${s.settings.autoStudyPlan ? 'checked' : ''}> Auto-schedule study sessions before exams</label>
+          <p class="small muted" style="margin:0">Warm-up at 14 days → Ramp-up at 7 → Lock-in at 3 → Exam day.</p>
+        </div>
+        <div class="card stack">
+          <h3>Integrations</h3>
+          <div class="row spread"><span>AI</span><span class="tag" style="--c:${st.ai ? '#34d399' : '#fbbf24'}">${st.ai ? `${esc(st.provider)} · ${esc(st.model)}` : 'offline'}</span></div>
+          <div class="row spread"><span>Spotify</span>${isConnected() ? '<button class="btn danger sm" id="sp-off">Disconnect</button>' : `<button class="btn spotify sm" id="sp-on" ${st.spotifyClientId ? '' : 'disabled title="Set SPOTIFY_CLIENT_ID in .env"'}>Connect</button>`}</div>
+          ${st.spotifyClientId ? '' : '<p class="small muted" style="margin:0">Embeds work without login. Add <code>SPOTIFY_CLIENT_ID</code> to <code>.env</code> to connect your account.</p>'}
+        </div>
+        <div class="card stack">
+          <h3>Courses</h3>
+          ${s.courses.length ? s.courses.map((c) => `<div class="row" data-c="${c.id}">
+            <input type="color" value="${c.color}" data-color style="width:36px;height:36px;padding:2px;flex:none">
+            <input value="${esc(c.code)}" data-code placeholder="Code" style="width:100px;flex:none">
+            <input value="${esc(c.name)}" data-name placeholder="Name" style="flex:1;width:auto">
+            <button class="icon-btn" data-del title="Delete course and its events">✕</button></div>`).join('') : '<div class="empty">Courses appear when you import a syllabus.</div>'}
+        </div>
+        <div class="card stack">
+          <h3>Focus playlists</h3>
+          ${Object.entries(s.settings.playlists).map(([k, p]) => `<label class="field">${labels[k] || k}<input data-pl="${k}" value="https://open.spotify.com/playlist/${esc(p.id)}" placeholder="Spotify playlist link"></label>`).join('')}
+          <p class="small muted" style="margin:0">Paste any Spotify playlist link.</p>
+        </div>
+        <div class="card stack">
+          <h3>Data</h3>
+          <p class="small muted" style="margin:0">Everything is stored locally in this browser.</p>
+          <div class="row"><button class="btn ghost sm" id="export">Export backup</button><label class="btn ghost sm">Import backup<input type="file" id="import" accept=".json" hidden></label></div>
+          <button class="btn danger sm" id="reset" style="align-self:flex-start">Reset everything</button>
+        </div>
+      </div>`;
+
+    const $ = (q) => el.querySelector(q);
+    $('#name').onchange = (e) => store.update((x) => (x.settings.name = e.target.value.trim()));
+    el.querySelectorAll('[data-t]').forEach((b) => (b.onclick = () => store.update((x) => (x.settings.theme = b.dataset.t))));
+    $('#autoFocus').onchange = (e) => store.update((x) => (x.settings.autoFocus = e.target.checked));
+    $('#autoPlan').onchange = (e) => store.update((x) => (x.settings.autoStudyPlan = e.target.checked));
+    $('#sp-on')?.addEventListener('click', connect);
+    $('#sp-off')?.addEventListener('click', () => { disconnect(); draw(); });
+    el.querySelectorAll('[data-c]').forEach((row) => {
+      const id = row.dataset.c;
+      const upd = (patch) => store.update((x) => Object.assign(x.courses.find((c) => c.id === id), patch));
+      row.querySelector('[data-color]').onchange = (e) => upd({ color: e.target.value });
+      row.querySelector('[data-code]').onchange = (e) => upd({ code: e.target.value.trim() });
+      row.querySelector('[data-name]').onchange = (e) => upd({ name: e.target.value.trim() });
+      row.querySelector('[data-del]').onclick = () => {
+        if (!confirm('Delete this course and all of its events?')) return;
+        store.update((x) => { x.courses = x.courses.filter((c) => c.id !== id); x.events = x.events.filter((e) => e.courseId !== id); });
+      };
+    });
+    el.querySelectorAll('[data-pl]').forEach((inp) => (inp.onchange = () => {
+      const pid = parsePlaylistId(inp.value);
+      if (!pid) return toast('That doesn’t look like a Spotify playlist link');
+      store.update((x) => (x.settings.playlists[inp.dataset.pl] = { name: x.settings.playlists[inp.dataset.pl].name.replace(/^(Lofi Beats|Deep Focus|Brain Food|Peaceful Piano)$/, 'Custom') , id: pid }));
+      loadDock(pid);
+      toast('Playlist saved');
+    }));
+    $('#export').onclick = () => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([store.export()], { type: 'application/json' }));
+      a.download = `study-os-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+    };
+    $('#import').onchange = async (e) => {
+      try { store.import(await e.target.files[0].text()); toast('Backup restored'); } catch { toast('Invalid backup file'); }
+    };
+    $('#reset').onclick = () => confirm('Erase all courses, events, notes and chats?') && (store.reset(), toast('Fresh start ✦'));
+  };
+  draw();
+  // Only re-render on non-text changes to avoid stealing input focus
+  return store.subscribe(() => { if (!el.contains(document.activeElement) || document.activeElement.type === 'checkbox' || document.activeElement.tagName === 'BUTTON') draw(); });
+}
+
+export { COURSE_COLORS };
