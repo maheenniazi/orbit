@@ -1,6 +1,6 @@
 // Careers: find internships/jobs that fit you, tailor resumes/CVs/cover letters, track applications.
 import { store, addEvents } from './store.js';
-import { aiEnabled, ask } from './ai.js';
+import { aiEnabled, ask, getStatus } from './ai.js';
 import { esc, md, uid, todayISO, fmtDate, extractJSON } from './util.js';
 import { toast, readFileText, enableImagePaste, ACCEPT, spinner, modal } from './ui.js';
 
@@ -263,7 +263,8 @@ function drawFind(el, redraw) {
           </div>
         </div>
       </div>
-      <details style="margin-top:14px"><summary class="small muted" style="cursor:pointer">sources: Canadian 2027 internship & co-op lists, Simplify’s 2027 + new-grad lists (filtered to your region), plus these company boards</summary>
+      ${webBox()}
+      <details style="margin-top:14px"><summary class="small muted" style="cursor:pointer">also searched: Canadian 2027 internship & co-op lists, Simplify’s 2027 + new-grad lists (filtered to your region), plus these company boards</summary>
         <div class="row" style="margin-top:10px"><input id="boards" value="${esc(c.boards)}" placeholder="greenhouse:figma, lever:palantir, ashby:ramp" style="flex:1"><button class="btn ghost sm" id="save-boards">save</button></div>
         <p class="small muted" style="margin:6px 0 0">add any company that uses Greenhouse, Lever or Ashby: the part after <code>boards.greenhouse.io/</code>, <code>jobs.lever.co/</code> or <code>jobs.ashbyhq.com/</code> in their careers link.</p>
       </details>
@@ -374,6 +375,23 @@ function drawFind(el, redraw) {
   drawResults();
 }
 
+// Which whole-web sources are connected (keys live in .env)
+function webBox() {
+  const w = getStatus().webJobs || {};
+  const on = Object.values(w).filter((x) => x.ready).map((x) => x.label);
+  const setup = [
+    ['google', 'Google Jobs', 'SERPAPI_KEY', 'https://serpapi.com/users/sign_up', 'searches all of Google’s job listings (LinkedIn, Indeed, Glassdoor, company sites, startups). free: 250 searches/month'],
+    ['adzuna', 'Adzuna', 'ADZUNA_APP_ID + ADZUNA_APP_KEY', 'https://developer.adzuna.com/signup', 'big job aggregator with lots of Canadian postings. free'],
+    ['jooble', 'Jooble', 'JOOBLE_API_KEY', 'https://ca.jooble.org/api/about', 'another large aggregator (ca.jooble.org). free'],
+  ].filter(([k]) => !w[k]?.ready);
+  return `<div class="web-box small">
+    <b>whole-web search:</b> ${on.length ? `<span style="color:var(--accent)">on</span> · ${esc(on.join(', '))}` : '<span class="muted">off. connect a source below to search every company, big or small</span>'}
+    ${setup.length ? `<details style="margin-top:6px" ${on.length ? '' : 'open'}><summary class="muted" style="cursor:pointer">${on.length ? 'add more sources' : 'how to turn it on'}</summary>
+      <ul style="margin:6px 0 0;padding-left:18px;line-height:1.7">${setup.map(([, n, key, url, why]) => `<li><a href="${url}" target="_blank" rel="noopener">${n}</a>: ${why}. put <code>${key}</code> in <code>.env</code></li>`).join('')}</ul>
+      <p class="faint" style="margin:6px 0 0">then restart the app. results from every source are merged and de-duplicated.</p></details>` : ''}
+  </div>`;
+}
+
 function jobCard(j, saved) {
   const ai = ui.aiRank?.[j.id];
   const score = ai?.score ?? j.fit?.score;
@@ -385,9 +403,11 @@ function jobCard(j, saved) {
       <div class="small muted">${esc(j.locations.slice(0, 3).join(' · ') || 'location n/a')}${j.locations.length > 3 ? ` +${j.locations.length - 3}` : ''}</div>
       <div class="row" style="margin-top:8px;gap:6px">
         ${j.terms.slice(0, 3).map((t) => `<span class="chip">${esc(t)}</span>`).join('')}
+        ${!j.terms.length && (car().filters?.terms || []).length ? '<span class="chip" title="the posting doesn’t say which term, so check it">term not stated</span>' : ''}
         ${j.remote ? '<span class="chip">remote</span>' : ''}
         ${j.sponsorship ? `<span class="chip" title="sponsorship">${esc(j.sponsorship.toLowerCase())}</span>` : ''}
         ${posted != null ? `<span class="small faint">${posted === 0 ? 'posted today' : `${posted}d ago`}</span>` : ''}
+        ${j.foundOn?.length ? `<span class="small faint">via ${esc(j.foundOn.slice(0, 3).join(', '))}</span>` : ''}
       </div>
       ${ai?.why ? `<div class="hand" style="margin-top:8px;font-size:19px">${esc(ai.why)}</div>` : j.fit?.matched?.length ? `<div class="small muted" style="margin-top:8px">matches your: ${esc(j.fit.matched.slice(0, 5).join(', '))}</div>` : ''}
     </div>

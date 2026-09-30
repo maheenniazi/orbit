@@ -563,3 +563,5 @@ details summary::marker { color: var(--faint); }
 .req-actions { display: none; position: absolute; right: 0; bottom: 6px; }
 .req:hover .req-actions { display: flex; }
 .req-actions .icon-btn { font-size: 11.5px; }
+
+.web-box { margin-top: 14px; padding: 10px 14px; border: 1px dashed var(--line-strong); border-radius: var(--r); }

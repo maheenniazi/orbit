@@ -280,7 +280,7 @@ const CATEGORY_RE = {
 
 const lc = (s) => String(s || '').toLowerCase();
 
-const CA_RE = /\bcanada\b|\bcanadian\b|,\s*(on|bc|qc|ab|mb|sk|ns|nb|nl|pe|yt|nt|nu)\b|\b(toronto|vancouver|montr[eé]al|waterloo|kitchener|ottawa|calgary|edmonton|mississauga|markham|brampton|oakville|burlington|hamilton|london, on|guelph|winnipeg|halifax|victoria|burnaby|richmond, bc|surrey|quebec city|qu[eé]bec|saskatoon|regina|fredericton|gatineau|laval|kelowna)\b/i;
+const CA_RE = /\bcanada\b|\bcanadian\b|\b(ontario|british columbia|alberta|quebec|québec|manitoba|saskatchewan|nova scotia|new brunswick|newfoundland|prince edward island)\b|,\s*(on|bc|qc|ab|mb|sk|ns|nb|nl|pe|yt|nt|nu)\b|\b(toronto|vancouver|montr[eé]al|waterloo|kitchener|ottawa|calgary|edmonton|mississauga|markham|brampton|oakville|burlington|hamilton|london, on|guelph|winnipeg|halifax|victoria|burnaby|richmond, bc|surrey|quebec city|qu[eé]bec|saskatoon|regina|fredericton|gatineau|laval|kelowna)\b/i;
 const US_RE = /\b(usa|u\.s\.a?\.?|united states|remote in us)\b|,\s*(al|ak|az|ar|ca|co|ct|de|fl|ga|hi|id|il|in|ia|ks|ky|la|me|md|ma|mi|mn|ms|mo|mt|ne|nv|nh|nj|nm|ny|nc|nd|oh|ok|or|pa|ri|sc|sd|tn|tx|ut|vt|va|wa|wv|wi|wy|dc)\b/i;
 function regionOf(item) {
   const locs = item.locations.join(' | ');
@@ -302,7 +302,7 @@ function matches(item, f) {
   if (f.terms?.length) {
     const hay = lc(`${item.terms.join(' ')} ${item.title}`);
     // Lists that don't state a term still count if they're for the right year
-    const ok = f.terms.some((t) => hay.includes(lc(t))) || (item.termUnknown && item.year && f.terms.some((t) => t.includes(item.year)));
+    const ok = f.terms.some((t) => hay.includes(lc(t))) || (item.termUnknown && (!item.year || f.terms.some((t) => t.includes(item.year))));
     if (!ok) return false;
   }
   const region = item.region || (item.region = regionOf(item));
@@ -335,6 +335,17 @@ function matches(item, f) {
   return true;
 }
 
+// Web results (Google Jobs, Adzuna, Jooble) → the same shape as list/board items
+function normalizeWeb(j) {
+  const text = `${j.title} ${j.schedule || ''} ${(j.desc || '').slice(0, 800)}`;
+  const terms = inferTerms(text);
+  const type = /intern|co-?op|stage\b/i.test(`${j.title} ${j.schedule || ''}`) ? 'internship' : inferType(j.title);
+  const item = { terms, termUnknown: !terms.length, type, category: j.category || '', sponsorship: '', degrees: [], active: true, ...j, source: j.source, via: j.via };
+  let region = regionOf(item);
+  if (region === 'unknown' || region === 'other') region = /\bin united states\b/i.test(j.query) ? 'US' : /\bin canada\b/i.test(j.query) || !j.query ? 'CA' : region;
+  return { ...item, region };
+}
+
 async function search(f = {}) {
   const wantTypes = f.types?.length ? f.types : ['internship', 'newgrad', 'job'];
   const feedKeys = [];
@@ -343,24 +354,37 @@ async function search(f = {}) {
   if (wantTypes.includes('newgrad') || wantTypes.includes('job')) feedKeys.push('newgrad');
   const boards = (f.companies || []).slice(0, 25);
 
-  const [feeds, boardRes] = await Promise.all([
+  const [feeds, boardRes, web] = await Promise.all([
     Promise.all(feedKeys.map((k) => loadFeed(k).then((r) => [k, r]))),
     Promise.all(boards.map((b) => loadBoard(b).then((r) => [b, r]))),
+    f.web === false ? null : require('./websearch').searchWeb(f).catch((e) => ({ items: [], sources: { 'web search': { count: 0, error: e.message } } })),
   ]);
 
   const sources = {};
   const all = [];
   for (const [k, r] of feeds) { sources[FEEDS[k].label] = { count: r.items.length, error: r.error, at: r.at }; all.push(...r.items); }
   for (const [b, r] of boardRes) { sources[b] = { count: r.items.length, error: r.error, at: r.at }; all.push(...r.items); }
+  if (web) { Object.assign(sources, web.sources); all.push(...web.items.map(normalizeWeb)); }
 
-  const seen = new Set();
+  const seen = new Map();
   const results = [];
+  const keyOf = (it) => lc(`${it.company}|${it.title}`).replace(/[^a-z0-9|]+/g, '') + '|' + lc((it.locations[0] || '').split(',')[0]);
   for (const it of all) {
     if (!matches(it, f)) continue;
-    const key = lc(`${it.company}|${it.title}|${it.locations[0] || ''}`);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    results.push({ ...it, region: it.region || regionOf(it) });
+    const key = keyOf(it);
+    const prev = seen.get(key);
+    if (prev) {
+      // keep one copy; fill in what the first copy was missing and remember every place it was found
+      const aggregator = (u) => /adzuna|jooble|indeed|linkedin|glassdoor|ziprecruiter|google\.com\/search/i.test(u || '');
+      if (it.url && (!prev.url || (aggregator(prev.url) && !aggregator(it.url)))) prev.url = it.url; // prefer the company's own apply link
+      if (!prev.desc && it.desc) prev.desc = it.desc;
+      if (!prev.posted && it.posted) prev.posted = it.posted;
+      prev.foundOn = [...new Set([...(prev.foundOn || []), it.via || it.source])];
+      continue;
+    }
+    const item = { ...it, region: it.region || regionOf(it), foundOn: [it.via || it.source].filter(Boolean) };
+    seen.set(key, item);
+    results.push(item);
   }
   results.sort((a, b) => b.posted - a.posted);
   const limit = Math.min(Number(f.limit) || 300, 600);

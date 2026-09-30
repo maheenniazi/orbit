@@ -109,6 +109,7 @@ const server = http.createServer(async (req, res) => {
         providers,
         provider: providers[0] || null,
         spotifyClientId: process.env.SPOTIFY_CLIENT_ID || null,
+        webJobs: require('./websearch').status(),
       });
     }
     if (url.pathname === '/api/models' && req.method === 'GET') {
