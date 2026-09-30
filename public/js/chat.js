@@ -25,7 +25,12 @@ function contextBlock(question) {
   const mentioned = s.notes.filter((n) => n.title && q.includes(n.title.toLowerCase())).slice(0, 2);
   const noteList = s.notes.slice(0, 40).map((n) => `- ${n.title} (${getCourse(n.courseId)?.code || 'general'})`).join('\n');
   const f = getFocusState();
-  return `Today is ${today} (${fmtDate(today, { weekday: 'long' })}).
+  const c = s.careers || {};
+  const careerLine = (c.saved || []).length
+    ? `\nJob/internship applications being tracked:\n${c.saved.slice(0, 25).map((a) => `- ${a.company} | ${a.title} | ${a.status}${a.deadline ? ' | deadline ' + a.deadline : ''}`).join('\n')}`
+    : '';
+  const careerProfile = c.profile?.targetRoles ? `\nCareer goals: ${c.profile.targetRoles}. Skills: ${c.profile.skills || '-'}.` : '';
+  return `Today is ${today} (${fmtDate(today, { weekday: 'long' })}).${careerProfile}${careerLine}
 Focus mode: ${f.mode.label}${f.exam ? `, next exam "${f.exam.title}" in ${f.days} day(s)` : ''}.
 Courses: ${s.courses.map((c) => `${c.code || ''} ${c.name}`.trim()).join('; ') || 'none yet'}
 Upcoming events:

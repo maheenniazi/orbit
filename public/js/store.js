@@ -20,6 +20,14 @@ const defaults = () => ({
   notes: [], // {id, title, courseId, body, createdAt, updatedAt}
   chat: [], // {role, content, ts}
   focusLog: [], // {date, minutes}
+  careers: {
+    profile: { name: '', email: '', phone: '', location: '', links: '', school: '', degree: '', gradDate: '', gpa: '', workAuth: 'citizen', targetRoles: '', skills: '', locations: '', extra: '' },
+    resume: '', // default resume, plain text/markdown
+    saved: [], // {id, company, title, url, locations, terms, type, status, deadline, notes, savedAt}
+    docs: [], // {id, kind, company, title, body, notes, jobUrl, createdAt}
+    boards: 'greenhouse:figma, greenhouse:airbnb, lever:palantir, ashby:ramp',
+    filters: null,
+  },
   settings: {
     theme: 'light',
     orbitTheme: true,
@@ -43,7 +51,12 @@ function load() {
       const i = OLD_COLORS.indexOf(c.color);
       if (i >= 0) c.color = COURSE_COLORS[i];
     });
-    return { ...d, ...raw, settings: { ...d.settings, ...raw.settings, playlists: { ...d.settings.playlists, ...(raw.settings?.playlists || {}) } } };
+    return {
+      ...d,
+      ...raw,
+      settings: { ...d.settings, ...raw.settings, playlists: { ...d.settings.playlists, ...(raw.settings?.playlists || {}) } },
+      careers: { ...d.careers, ...(raw.careers || {}), profile: { ...d.careers.profile, ...(raw.careers?.profile || {}) } },
+    };
   } catch {
     return defaults();
   }
@@ -72,7 +85,7 @@ export const store = {
   import(json) {
     const d = defaults();
     const parsed = JSON.parse(json);
-    state = { ...d, ...parsed, settings: { ...d.settings, ...parsed.settings } };
+    state = { ...d, ...parsed, settings: { ...d.settings, ...parsed.settings }, careers: { ...d.careers, ...(parsed.careers || {}), profile: { ...d.careers.profile, ...(parsed.careers?.profile || {}) } } };
     localStorage.setItem(KEY, JSON.stringify(state));
     subs.forEach((fn) => fn(state));
   },

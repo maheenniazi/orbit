@@ -106,6 +106,7 @@ async function callAI({ system = '', messages = [], maxTokens = 2048 }) {
 // Runs inside kiro-agent/ with the text-only "study-os" agent (no tools), so a prompt
 // can never make Kiro run shell commands or edit files.
 const { execFile } = require('child_process');
+const jobs = require('./jobs');
 const KIRO_DIR = path.join(__dirname, 'kiro-agent');
 const KIRO_AGENT = process.env.KIRO_AGENT || 'study-os';
 const MAX_PROMPT = 100_000; // stay under the OS argument-length limit
@@ -186,6 +187,17 @@ const server = http.createServer(async (req, res) => {
       const body = JSON.parse((await readBody(req)) || '{}');
       const text = await callAI(body);
       return send(res, 200, { text });
+    }
+    if (url.pathname === '/api/jobs/search' && req.method === 'POST') {
+      const filters = JSON.parse((await readBody(req)) || '{}');
+      return send(res, 200, await jobs.search(filters));
+    }
+    if (url.pathname === '/api/job-text' && req.method === 'GET') {
+      try {
+        return send(res, 200, await jobs.jobText(url.searchParams.get('url') || ''));
+      } catch (e) {
+        return send(res, 422, { error: e.name === 'TimeoutError' ? 'That site took too long. Paste the description instead.' : e.message });
+      }
     }
     if (req.method === 'GET') return serveStatic(req, res, url.pathname);
     send(res, 405, { error: 'Method not allowed' });

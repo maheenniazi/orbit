@@ -41,6 +41,12 @@ Kiro runs as the `study-os` agent in `kiro-agent/`, which has **no tools**, so i
 - **Notes generator:** turns lecture text or slides into an outline, Cornell notes, a summary or flashcards. Notes are editable markdown, and each has a "Quiz me" button.
 - **Spotify:** a player in the sidebar that keeps playing when you switch pages, with a playlist for each focus mode that you can change in Settings.
 
+- **Careers:**
+  - *Profile:* your default resume (PDF or paste) plus details like major, grad date, target roles, skills and work authorization. AI can fill the details in from your resume.
+  - *Find:* type something like "summer 2027 software internships in nyc or remote" and it turns that into filters (type, term, location, remote, field, posted date, work authorization). Listings come from [SimplifyJobs' Summer 2027](https://github.com/SimplifyJobs/Summer2027-Internships) and [New Grad](https://github.com/SimplifyJobs/New-Grad-Positions) lists (updated hourly by the community) plus any Greenhouse, Lever or Ashby company board you add. Results are ranked by fit with your profile, and AI can re-rank the top 30 with a reason for each.
+  - *Tailor:* paste a job link or description and get a tailored resume, CV or cover letter built only from your real experience, plus notes on missing keywords. "Save as pdf" opens a clean print layout.
+  - *Tracker:* saved roles move through saved, applied, interview, offer and rejected. Deadlines and follow-ups can go on your calendar.
+
 All data lives in the browser's localStorage. You can export and import a backup in Settings.
 
 ## Code map

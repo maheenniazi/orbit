@@ -11,8 +11,9 @@ import * as notes from './notes.js';
 import * as chat from './chat.js';
 import * as focus from './focus.js';
 import * as settings from './settings.js';
+import * as careers from './careers.js';
 
-const routes = { dashboard, calendar, import: syllabus, notes, chat, focus, settings };
+const routes = { dashboard, calendar, import: syllabus, notes, chat, focus, careers, settings };
 const viewEl = document.getElementById('view');
 let cleanup = null;
 
