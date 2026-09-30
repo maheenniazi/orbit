@@ -9,13 +9,19 @@ const updCar = (fn) => store.update((s) => fn(s.careers));
 
 // ============ Query parsing ("summer 2027 software internships in nyc or remote") ============
 const CITY_ALIASES = {
+  toronto: 'Toronto', gta: 'ON', 'greater toronto': 'ON', vancouver: 'Vancouver', montreal: 'Montreal', 'montréal': 'Montreal', waterloo: 'Waterloo',
+  kitchener: 'Kitchener', 'kitchener-waterloo': 'Waterloo', kw: 'Waterloo', ottawa: 'Ottawa', calgary: 'Calgary', edmonton: 'Edmonton',
+  mississauga: 'Mississauga', markham: 'Markham', brampton: 'Brampton', oakville: 'Oakville', hamilton: 'Hamilton', guelph: 'Guelph',
+  winnipeg: 'Winnipeg', halifax: 'Halifax', victoria: 'Victoria', burnaby: 'Burnaby', saskatoon: 'Saskatoon', regina: 'Regina', kelowna: 'Kelowna',
+  'quebec city': 'Quebec City', ontario: 'ON', 'british columbia': 'BC', bc: 'BC', alberta: 'AB', quebec: 'QC', 'québec': 'QC', manitoba: 'MB',
+  'nova scotia': 'NS', 'new brunswick': 'NB', saskatchewan: 'SK',
   nyc: 'New York', 'new york': 'New York', manhattan: 'New York', brooklyn: 'New York', sf: 'San Francisco', 'san francisco': 'San Francisco',
   'bay area': 'CA', 'silicon valley': 'CA', la: 'Los Angeles', 'los angeles': 'Los Angeles', boston: 'Boston', seattle: 'Seattle', chicago: 'Chicago',
   austin: 'Austin', dc: 'Washington', 'washington dc': 'Washington', atlanta: 'Atlanta', miami: 'Miami', denver: 'Denver', philly: 'Philadelphia',
   philadelphia: 'Philadelphia', pittsburgh: 'Pittsburgh', toronto: 'Toronto', london: 'London', california: 'CA', texas: 'TX', 'new jersey': 'NJ',
   massachusetts: 'MA', washington: 'WA', illinois: 'IL', 'north carolina': 'NC', georgia: 'GA', florida: 'FL', colorado: 'CO', 'san diego': 'San Diego',
   'san jose': 'San Jose', 'mountain view': 'Mountain View', 'palo alto': 'Palo Alto', 'menlo park': 'Menlo Park', dallas: 'Dallas', houston: 'Houston',
-  canada: 'Canada', uk: 'UK',
+  uk: 'UK',
 };
 const CATEGORY_WORDS = {
   software: /\b(software|swe|sde|developer|coding|full.?stack|back.?end|front.?end|web|mobile|ios|android)\b/,
@@ -30,6 +36,26 @@ const CATEGORY_WORDS = {
 };
 export const CATEGORY_LABELS = { software: 'software', data: 'data / ai', quant: 'quant', product: 'product', hardware: 'hardware', design: 'design', research: 'research', business: 'business', psych: 'psych / people' };
 
+// Canadian-first work authorization. Old US values are mapped on read.
+export const WORK_AUTH = {
+  ca_citizen: 'Canadian citizen',
+  ca_pr: 'Canadian permanent resident',
+  ca_study: 'international student (study permit / co-op work permit)',
+  ca_open: 'open work permit (e.g. PGWP)',
+  ca_needs: 'will need employer sponsorship (LMIA)',
+  dual: 'Canadian + US citizen / green card',
+};
+const LEGACY_AUTH = { citizen: 'ca_citizen', permanent: 'ca_pr', needs: 'ca_needs' };
+export const workAuthOf = (p) => (WORK_AUTH[p.workAuth] ? p.workAuth : LEGACY_AUTH[p.workAuth] || 'ca_citizen');
+function authFlags(p) {
+  const a = workAuthOf(p);
+  return {
+    usNeedsVisa: a !== 'dual', // Canadians need a US visa (usually J-1 for internships, TN for full-time)
+    caNotPR: ['ca_study', 'ca_open', 'ca_needs'].includes(a),
+    caNotCitizen: a === 'ca_pr',
+  };
+}
+
 export function parseJobQuery(q) {
   const t = ` ${q.toLowerCase()} `;
   const f = { types: [], terms: [], locations: [], categories: [], remote: false, remoteOk: false, postedWithinDays: 0, keywords: '' };
@@ -37,11 +63,15 @@ export function parseJobQuery(q) {
   if (/new ?grad|entry.?level|early career|graduate role/.test(t)) f.types.push('newgrad');
   if (/\bfull.?time\b|\bjobs?\b(?!.*intern)/.test(t) && !f.types.length) f.types.push('newgrad', 'job');
   const now = new Date();
+  const SEASON_START = { Winter: 0, Spring: 2, Summer: 4, Fall: 8 }; // co-op terms: winter jan–apr, summer may–aug, fall sep–dec
   for (const m of t.matchAll(/\b(summer|fall|autumn|spring|winter)\s*'?(20\d{2}|\d{2})?\b/g)) {
     const season = m[1] === 'autumn' ? 'Fall' : m[1][0].toUpperCase() + m[1].slice(1);
-    let y = m[2] ? (m[2].length === 2 ? '20' + m[2] : m[2]) : String(now.getFullYear() + (now.getMonth() >= 5 && season === 'Summer' ? 1 : 0));
+    const y = m[2] ? (m[2].length === 2 ? '20' + m[2] : m[2]) : String(now.getFullYear() + (now.getMonth() >= SEASON_START[season] ? 1 : 0));
     f.terms.push(`${season} ${y}`);
   }
+  const saysCanada = /\bcanad(a|ian)\b/.test(t);
+  const saysUS = /\b(us|usa|u\.s\.|united states|america|american)\b/.test(t);
+  f.region = saysCanada && saysUS ? 'CA_US' : saysUS ? 'US' : /\b(anywhere|worldwide|global)\b/.test(t) ? 'any' : 'CA';
   if (/\bremote\b/.test(t)) {
     if (/\bor remote\b|remote or|remote ok|\+ ?remote/.test(t) || /\bin\b/.test(t.replace(/remote/g, ''))) f.remoteOk = true;
     else f.remote = true;
@@ -92,7 +122,7 @@ function profileBlock() {
   const p = car().profile;
   return Object.entries({
     Name: p.name, Email: p.email, Phone: p.phone, Location: p.location, Links: p.links, School: p.school, Degree: p.degree,
-    'Graduation': p.gradDate, GPA: p.gpa, 'Work authorization': { citizen: 'US citizen', permanent: 'Permanent resident', needs: 'Will need visa sponsorship' }[p.workAuth],
+    'Graduation': p.gradDate, GPA: p.gpa, 'Work authorization': WORK_AUTH[workAuthOf(p)],
     'Target roles': p.targetRoles, Skills: p.skills, 'Other things about me': p.extra,
   }).filter(([, v]) => v && String(v).trim()).map(([k, v]) => `${k}: ${v}`).join('\n');
 }
@@ -128,7 +158,12 @@ contact line
 Then the date, "Dear Hiring Team," (or the hiring manager's name if given), 3–4 short paragraphs: why this role/company specifically (use details from the posting), 2 concrete examples from the candidate's real experience that match the job's requirements, and a confident close. Sign off with the candidate's name. Warm and genuine, not generic; under 350 words.`,
   }[kind];
   return {
-    system: `You are an expert career coach and resume writer for college students. ${rules}\n\n${format}\n\nAfter the document, output a line with exactly ===NOTES=== and then:\n- **What I tailored:** 2–4 bullets\n- **Keywords from the posting you're missing:** comma list (only real gaps, no fabrications)\n- **Tips:** 1–3 honest suggestions to strengthen the application`,
+    system: `You are an expert career coach and resume writer for Canadian university students. ${rules}
+CANADIAN CONVENTIONS:
+- Use Canadian English spelling (colour, centre, behaviour, analyse, program, cheque; "-ize" endings are fine).
+- Never include a photo, age, date of birth, SIN, marital status, or nationality. Only mention work authorization or immigration status if the posting explicitly asks for it.
+- Say "co-op" when the role is a co-op; list co-op work terms like any other experience. Canadian dates are fine as "Sept. 2025 – Apr. 2026".
+- If the job posting is written in French, write the whole document in French.\n\n${format}\n\nAfter the document, output a line with exactly ===NOTES=== and then:\n- **What I tailored:** 2–4 bullets\n- **Keywords from the posting you're missing:** comma list (only real gaps, no fabrications)\n- **Tips:** 1–3 honest suggestions to strengthen the application`,
     user: `# Job posting\nCompany: ${job.company || 'unknown'}\nTitle: ${job.title || 'unknown'}\n${job.location ? 'Location: ' + job.location + '\n' : ''}\n${job.text.slice(0, 14000)}\n\n# Candidate profile\n${profileBlock() || '(none)'}\n\n# Candidate's default resume\n${car().resume.slice(0, 14000) || '(none provided)'}`,
   };
 }
@@ -172,7 +207,7 @@ const STATUSES = ['saved', 'applied', 'interview', 'offer', 'rejected'];
 
 function defaultFilters() {
   const p = car().profile;
-  return { types: ['internship'], terms: [], locations: [], categories: [], remote: false, remoteOk: false, postedWithinDays: 0, keywords: '', workAuth: p.workAuth === 'needs' ? 'needs' : p.workAuth === 'permanent' ? 'permanent' : '' };
+  return { types: ['internship'], terms: [], locations: [], categories: [], remote: false, remoteOk: false, postedWithinDays: 0, keywords: '', region: 'CA', applyAuth: true };
 }
 
 export function render(el) {
@@ -206,7 +241,7 @@ function drawFind(el, redraw) {
 
   el.innerHTML = `
     <div class="card" style="margin-bottom:22px">
-      <div class="quick-add"><input id="q" placeholder="try “summer 2027 software internships in nyc or remote”"><button class="btn" id="go">search</button></div>
+      <div class="quick-add"><input id="q" placeholder="try “summer 2027 co-op in toronto or remote” or “winter 2027 data internships in canada”"><button class="btn" id="go">search</button></div>
       <div class="row" style="margin-top:16px;gap:18px;align-items:flex-start">
         <div class="stack" style="gap:8px;flex:1;min-width:260px">
           <div class="label small muted">type</div>
@@ -215,19 +250,20 @@ function drawFind(el, redraw) {
           <div class="filters">${Object.entries(CATEGORY_LABELS).map(([k, l]) => chip(f.categories.includes(k), `data-cat="${k}"`, l)).join('')}</div>
         </div>
         <div class="stack" style="gap:10px;flex:1;min-width:260px">
-          <div class="row"><label class="field">term<input id="f-term" value="${esc(f.terms.join(', '))}" placeholder="Summer 2027"></label><label class="field">location<input id="f-loc" value="${esc(f.locations.join(', '))}" placeholder="New York, Boston"></label></div>
+          <div class="row"><label class="field">term<input id="f-term" value="${esc(f.terms.join(', '))}" placeholder="Summer 2027, Winter 2027"></label><label class="field">city / province<input id="f-loc" value="${esc(f.locations.join(', '))}" placeholder="Toronto, Waterloo, BC"></label></div>
           <div class="row">
+            <label class="field">where<select id="f-region">${[['CA', 'canada'], ['CA_US', 'canada + us'], ['US', 'us only'], ['any', 'anywhere']].map(([v, l]) => `<option value="${v}" ${(f.region || 'CA') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
             <label class="field">posted<select id="f-posted">${[[0, 'any time'], [1, 'past day'], [7, 'past week'], [30, 'past month']].map(([v, l]) => `<option value="${v}" ${+f.postedWithinDays === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-            <label class="field">keyword<input id="f-kw" value="${esc(f.keywords)}" placeholder="python, figma…"></label>
           </div>
+          <div class="row"><label class="field">keyword<input id="f-kw" value="${esc(f.keywords)}" placeholder="python, figma, co-op…"></label></div>
           <div class="row" style="gap:18px">
             <label class="check small"><input type="checkbox" id="f-remote" ${f.remote ? 'checked' : ''}> remote only</label>
             <label class="check small"><input type="checkbox" id="f-remoteok" ${f.remoteOk ? 'checked' : ''}> include remote</label>
-            <label class="check small"><input type="checkbox" id="f-auth" ${f.workAuth ? 'checked' : ''}> hide roles I can’t take (work auth)</label>
+            <label class="check small" title="${esc(WORK_AUTH[workAuthOf(c.profile)])}"><input type="checkbox" id="f-auth" ${f.applyAuth !== false ? 'checked' : ''}> hide roles I can’t take (work auth)</label>
           </div>
         </div>
       </div>
-      <details style="margin-top:14px"><summary class="small muted" style="cursor:pointer">sources: Simplify’s Summer 2027 + new-grad lists, plus these company boards</summary>
+      <details style="margin-top:14px"><summary class="small muted" style="cursor:pointer">sources: Canadian 2027 internship & co-op lists, Simplify’s 2027 + new-grad lists (filtered to your region), plus these company boards</summary>
         <div class="row" style="margin-top:10px"><input id="boards" value="${esc(c.boards)}" placeholder="greenhouse:figma, lever:palantir, ashby:ramp" style="flex:1"><button class="btn ghost sm" id="save-boards">save</button></div>
         <p class="small muted" style="margin:6px 0 0">add any company that uses Greenhouse, Lever or Ashby: the part after <code>boards.greenhouse.io/</code>, <code>jobs.lever.co/</code> or <code>jobs.ashbyhq.com/</code> in their careers link.</p>
       </details>
@@ -244,7 +280,8 @@ function drawFind(el, redraw) {
     keywords: $('#f-kw').value.trim(),
     remote: $('#f-remote').checked,
     remoteOk: $('#f-remoteok').checked,
-    workAuth: $('#f-auth').checked ? (c.profile.workAuth === 'citizen' ? '' : c.profile.workAuth) || '' : '',
+    region: $('#f-region').value,
+    applyAuth: $('#f-auth').checked,
   });
   const saveFilters = (nf) => updCar((cc) => (cc.filters = nf));
 
@@ -266,7 +303,7 @@ function drawFind(el, redraw) {
     const q = $('#q').value.trim();
     if (q) {
       const p = parseJobQuery(q);
-      nf = { ...nf, ...p, workAuth: nf.workAuth, types: p.types.length ? p.types : nf.types };
+      nf = { ...nf, ...p, applyAuth: nf.applyAuth, types: p.types.length ? p.types : nf.types };
     }
     saveFilters(nf);
     const companies = car().boards.split(/[,\s]+/).map((s) => s.trim()).filter((s) => /^(greenhouse|lever|ashby):\S+$/.test(s));
@@ -274,7 +311,7 @@ function drawFind(el, redraw) {
     drawFind(el, redraw);
     el.querySelector('#q').value = q;
     try {
-      const r = await fetch('/api/jobs/search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...nf, companies }) });
+      const r = await fetch('/api/jobs/search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...nf, ...(nf.applyAuth !== false ? authFlags(car().profile) : {}), companies }) });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || 'search failed');
       const tok = profileTokens();
@@ -304,7 +341,7 @@ function drawFind(el, redraw) {
         ${aiEnabled() && ui.results.length && hasProfile ? `<button class="btn ghost sm" id="ai-rank">${ui.aiRank ? 're-rank with ai' : 'rank top 30 with ai'}</button>` : ''}
       </div>
       ${errs.length ? `<div class="small muted" style="margin-bottom:14px">couldn’t reach: ${errs.map(([k, v]) => `<b>${esc(k)}</b> (${esc(v.error)})`).join(', ')}</div>` : ''}
-      ${list.length ? `<div class="stack" style="gap:12px">${list.slice(0, ui.shown).map((j) => jobCard(j, savedIds.has(j.id))).join('')}</div>` : '<div class="card empty"><span class="big">no matches.</span>try fewer filters, or a different term like “Summer 2027”</div>'}
+      ${list.length ? `<div class="stack" style="gap:12px">${list.slice(0, ui.shown).map((j) => jobCard(j, savedIds.has(j.id))).join('')}</div>` : '<div class="card empty"><span class="big">no matches.</span>try fewer filters, “canada + us”, or a different term like “Winter 2027”</div>'}
       ${list.length > ui.shown ? '<div class="row" style="justify-content:center;margin-top:16px"><button class="btn ghost" id="more">show more</button></div>' : ''}`;
     box.querySelector('#more')?.addEventListener('click', () => { ui.shown += 40; drawResults(); });
     box.querySelector('#ai-rank')?.addEventListener('click', aiRank);
@@ -565,14 +602,15 @@ function drawProfile(el, redraw) {
       <div class="card stack" style="gap:12px">
         <h3>about you</h3>
         <div class="row">${field('name', 'name')}${field('email', 'email')}</div>
-        <div class="row">${field('phone', 'phone')}${field('location', 'where you live', 'Boston, MA')}</div>
+        <div class="row">${field('phone', 'phone')}${field('location', 'where you live', 'Toronto, ON')}</div>
         ${field('links', 'links', 'linkedin.com/in/…, portfolio')}
-        <div class="row">${field('school', 'school')}${field('degree', 'degree / major', 'B.A. Psychology, minor in CS')}</div>
-        <div class="row">${field('gradDate', 'graduation', 'May 2028')}${field('gpa', 'gpa (optional)')}</div>
-        <label class="field">work authorization<select data-p="workAuth">${[['citizen', 'US citizen'], ['permanent', 'green card / permanent resident'], ['needs', 'will need sponsorship']].map(([v, l]) => `<option value="${v}" ${p.workAuth === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        <div class="row">${field('school', 'school')}${field('degree', 'degree / program', 'Honours B.Sc. Psychology, co-op')}</div>
+        <div class="row">${field('gradDate', 'expected graduation', 'April 2028')}${field('gpa', 'gpa / average (optional)', '3.7/4.0 or 85%')}</div>
+        <label class="field">work authorization<select data-p="workAuth">${Object.entries(WORK_AUTH).map(([v, l]) => `<option value="${v}" ${workAuthOf(p) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        <p class="small muted" style="margin:-4px 0 0">used to hide roles you can’t take. for us roles, canadians usually need a visa (j-1 for internships, tn for full-time), so us roles that don’t sponsor are hidden unless you’re also a us citizen or green card holder.</p>
         ${field('targetRoles', 'roles you want', 'software engineering, product, ux research')}
         ${field('skills', 'skills', 'python, react, figma, spss')}
-        ${field('locations', 'preferred locations', 'New York, Boston, remote')}
+        ${field('locations', 'preferred locations', 'Toronto, Waterloo, remote')}
         <label class="field">anything else (used for cover letters)<textarea data-p="extra" style="min-height:80px" placeholder="why you’re into this field, clubs, things you’re proud of…">${esc(p.extra)}</textarea></label>
         <div class="row" style="justify-content:flex-end"><button class="btn" id="p-save">save profile</button></div>
       </div>

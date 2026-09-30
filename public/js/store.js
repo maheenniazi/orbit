@@ -5,6 +5,9 @@ const KEY = 'studyos:v1';
 
 // Earthy "vintage" palette: terracotta, sage, dusty navy, mustard, mauve, cocoa, teal, rose
 export const COURSE_COLORS = ['#c0582f', '#6f7f4f', '#3f5a78', '#b98a2e', '#a0526b', '#7a5c45', '#4f7d74', '#c27c86'];
+// Canadian employers with public job boards (verified slugs): Cohere, Ada, Faire (Waterloo/Toronto), U of T PEY co-op board
+const CA_BOARDS = 'ashby:cohere, greenhouse:ada18, greenhouse:faire, greenhouse:uoft';
+const OLD_BOARDS = 'greenhouse:figma, greenhouse:airbnb, lever:palantir, ashby:ramp';
 const OLD_COLORS = ['#a78bfa', '#f472b6', '#60a5fa', '#34d399', '#fbbf24', '#fb7185', '#22d3ee', '#c084fc'];
 
 export const DEFAULT_PLAYLISTS = {
@@ -25,7 +28,7 @@ const defaults = () => ({
     resume: '', // default resume, plain text/markdown
     saved: [], // {id, company, title, url, locations, terms, type, status, deadline, notes, savedAt}
     docs: [], // {id, kind, company, title, body, notes, jobUrl, createdAt}
-    boards: 'greenhouse:figma, greenhouse:airbnb, lever:palantir, ashby:ramp',
+    boards: CA_BOARDS,
     filters: null,
   },
   settings: {
@@ -46,6 +49,7 @@ function load() {
     const d = defaults();
     // One-time switch to the new paper theme for data saved before the orbit redesign
     if (raw.settings && !raw.settings.orbitTheme) Object.assign(raw.settings, { theme: 'light', orbitTheme: true });
+    if (raw.careers?.boards === OLD_BOARDS) raw.careers.boards = CA_BOARDS;
     // Swap neon course colors from the old theme for the new palette
     (raw.courses || []).forEach((c) => {
       const i = OLD_COLORS.indexOf(c.color);
