@@ -414,4 +414,4 @@ async function jobText(rawUrl) {
   return { title, company: '', location: '', text: text.slice(0, 20000) };
 }
 
-module.exports = { search, jobText, htmlToText, inferTerms, parseReadmeTables, regionOf, _cache: cache };
+module.exports = { search, jobText, htmlToText, inferTerms, parseReadmeTables, regionOf, isPrivateHost, UA, _cache: cache };

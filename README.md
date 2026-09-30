@@ -49,6 +49,7 @@ Kiro runs as the `study-os` agent in `kiro-agent/`, which has **no tools**, so i
 - **Notes generator:** turns lecture text or slides into an outline, Cornell notes, a summary or flashcards. Notes are editable markdown, and each has a "Quiz me" button.
 - **Spotify:** a player in the sidebar that keeps playing when you switch pages, with a playlist for each focus mode that you can change in Settings.
 
+- **Degree planner:** a folder for each school year with your courses (code, credits, grade, status: done, in progress, planned, failed or dropped). It adds up credits earned, in progress and planned, shows how many are left to graduate, your average and approximate 4.0 GPA, and a finish-time estimate based on your pace. Import a transcript (PDF or screenshot) to build the folders automatically. Give it your university, your program and links to your program pages in the academic calendar, and it reads the requirements and checks every one against your courses: specific courses (with "or" options), "X credits from a list / 300-level" rules, total credits, plus things you tick off yourself like GPA or breadth. Credit systems for most Canadian universities are built in (e.g. U of T 0.5 per half-course / 20.0 total, UBC 3 / 120). Calendars that load with JavaScript can't be read from a link, so save the page as a PDF and upload it instead. This is a planning aid, not an official degree audit.
 - **Careers:**
   - *Profile:* your default resume (PDF or paste) plus details like major, grad date, target roles, skills and work authorization. AI can fill the details in from your resume.
   - *Find:* Canada-first. Type something like "summer 2027 co-op in toronto or remote" and it turns that into filters (type, co-op term, city or province, where (Canada / Canada + US / US / anywhere), field, posted date, work authorization). Listings come from community-run Canadian 2027 internship and co-op lists, [SimplifyJobs' Summer 2027](https://github.com/SimplifyJobs/Summer2027-Internships) and [New Grad](https://github.com/SimplifyJobs/New-Grad-Positions) lists (filtered to your region), and any Greenhouse, Lever or Ashby company board you add. The defaults are Cohere, Ada, Faire and U of T's PEY co-op board. Work authorization options are Canadian (citizen, PR, study permit, open work permit, needs LMIA, dual CA/US). US roles that don't sponsor visas are hidden unless you're also a US citizen or green card holder. Results are ranked by fit, and AI can re-rank the top 30.
@@ -67,6 +68,7 @@ Everything is read in your browser except two cases that use tools built into ma
 server.js            static server + /api/ai proxy (Anthropic/OpenAI) + /api/status
 public/js/app.js     router, theme, focus palette, sidebar widgets
   fileread.js        reads pdf, office, images (OCR) and more into text
+  degree.js          degree planner UI · degree-engine.js credit/requirement math (no DOM)
   syllabus.js        offline parser, AI parser, quick-add parser, import view
   focus.js           mode logic, study-plan generator, pomodoro, focus view
   calendar.js  chat.js  notes.js  dashboard.js  settings.js  spotify.js

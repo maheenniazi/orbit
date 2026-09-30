@@ -31,6 +31,18 @@ const defaults = () => ({
     boards: CA_BOARDS,
     filters: null,
   },
+  degree: {
+    school: '',
+    program: '', // e.g. "Honours BSc, Psychology Major"
+    totalCredits: 0, // credits needed to graduate
+    unit: 'credits', // what the school calls them: credits / units / FCEs
+    defaultCredit: 0.5, // credit value of a typical one-term course
+    links: '', // program requirement pages, one per line
+    requirements: [], // {id, name, type: total|courses|choose|manual, min, unit: credits|courses, courses: [], note, overlap, done}
+    years: [], // {id, label, open, courses: [{id, code, title, credits, term, grade, status: completed|in-progress|planned|failed|dropped}]}
+    checkedAt: 0,
+    sources: [], // where requirements came from
+  },
   settings: {
     theme: 'light',
     orbitTheme: true,
@@ -60,6 +72,7 @@ function load() {
       ...raw,
       settings: { ...d.settings, ...raw.settings, playlists: { ...d.settings.playlists, ...(raw.settings?.playlists || {}) } },
       careers: { ...d.careers, ...(raw.careers || {}), profile: { ...d.careers.profile, ...(raw.careers?.profile || {}) } },
+      degree: { ...d.degree, ...(raw.degree || {}) },
     };
   } catch {
     return defaults();
@@ -89,7 +102,7 @@ export const store = {
   import(json) {
     const d = defaults();
     const parsed = JSON.parse(json);
-    state = { ...d, ...parsed, settings: { ...d.settings, ...parsed.settings }, careers: { ...d.careers, ...(parsed.careers || {}), profile: { ...d.careers.profile, ...(parsed.careers?.profile || {}) } } };
+    state = { ...d, ...parsed, settings: { ...d.settings, ...parsed.settings }, careers: { ...d.careers, ...(parsed.careers || {}), profile: { ...d.careers.profile, ...(parsed.careers?.profile || {}) } }, degree: { ...d.degree, ...(parsed.degree || {}) } };
     localStorage.setItem(KEY, JSON.stringify(state));
     subs.forEach((fn) => fn(state));
   },

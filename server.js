@@ -53,6 +53,7 @@ function readBody(req, { raw = false, limit = MAX_BODY } = {}) {
 
 const { execFile } = require('child_process');
 const jobs = require('./jobs');
+const pages = require('./pages');
 
 // ---- File conversion helpers (macOS built-ins: textutil for old Word/RTF/ODT, sips for HEIC/TIFF photos) ----
 const os = require('os');
@@ -134,6 +135,13 @@ const server = http.createServer(async (req, res) => {
         return out.jpeg ? send(res, 200, out.jpeg, 'image/jpeg') : send(res, 200, out);
       } catch (e) {
         return send(res, e.status || 422, { error: e.message });
+      }
+    }
+    if (url.pathname === '/api/page-text' && req.method === 'GET') {
+      try {
+        return send(res, 200, await pages.pageText(url.searchParams.get('url') || ''));
+      } catch (e) {
+        return send(res, 422, { error: e.name === 'TimeoutError' ? 'that site took too long to respond' : e.message });
       }
     }
     if (url.pathname === '/api/job-text' && req.method === 'GET') {

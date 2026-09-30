@@ -2,6 +2,7 @@
 import { store, addEvents, getCourse } from './store.js';
 import { aiEnabled, ask, lastUsedModel, modelInfo, loadModels } from './ai.js';
 import { mountModelPicker } from './modelpicker.js';
+import { degreeContext } from './degree.js';
 import { esc, md, todayISO, addDays, fmtDate, fmtTime, TYPE_META, EXAM_TYPES, daysUntil } from './util.js';
 import { spinner, toast } from './ui.js';
 import { getFocusState, syncStudyPlans } from './focus.js';
@@ -31,7 +32,7 @@ function contextBlock(question) {
     ? `\nJob/internship applications being tracked:\n${c.saved.slice(0, 25).map((a) => `- ${a.company} | ${a.title} | ${a.status}${a.deadline ? ' | deadline ' + a.deadline : ''}`).join('\n')}`
     : '';
   const careerProfile = c.profile?.targetRoles ? `\nCareer goals: ${c.profile.targetRoles}. Skills: ${c.profile.skills || '-'}.` : '';
-  return `Today is ${today} (${fmtDate(today, { weekday: 'long' })}).${careerProfile}${careerLine}
+  return `Today is ${today} (${fmtDate(today, { weekday: 'long' })}).${careerProfile}${careerLine}${degreeContext()}
 Focus mode: ${f.mode.label}${f.exam ? `, next exam "${f.exam.title}" in ${f.days} day(s)` : ''}.
 Courses: ${s.courses.map((c) => `${c.code || ''} ${c.name}`.trim()).join('; ') || 'none yet'}
 Upcoming events:
