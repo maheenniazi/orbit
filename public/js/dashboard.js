@@ -124,7 +124,7 @@ export function render(el) {
       toast(`added “${e.title}” · ${relDay(e.date).toLowerCase()}${e.time ? ' ' + fmtTime(e.time) : ''}`);
     };
     el.querySelector('#qa-go').onclick = qa;
-    el.querySelector('#qa').onkeydown = (e) => e.key === 'Enter' && qa();
+    el.querySelector('#qa').onkeydown = (e) => { if (e.key === 'Enter') qa(); };
     renderSpotify(el.querySelector('#spotify'), f.mode.playlist);
   };
   draw();

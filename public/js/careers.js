@@ -325,7 +325,7 @@ function drawFind(el, redraw) {
     drawResults();
   };
   $('#go').onclick = run;
-  $('#q').onkeydown = (e) => e.key === 'Enter' && run();
+  $('#q').onkeydown = (e) => { if (e.key === 'Enter') run(); };
 
   function drawResults() {
     const box = el.querySelector('#results');

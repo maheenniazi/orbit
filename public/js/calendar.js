@@ -190,7 +190,7 @@ export function render(el) {
       toast(`Added “${parsed.title}”`);
     };
     $('#qa-go').onclick = qa;
-    $('#qa').onkeydown = (e) => e.key === 'Enter' && qa();
+    $('#qa').onkeydown = (e) => { if (e.key === 'Enter') qa(); };
   };
 
   draw();
