@@ -28,7 +28,15 @@ export function render(el) {
           <h3>Integrations</h3>
           <div class="row spread"><span>AI</span><span class="tag" style="--c:${st.ai ? '#34d399' : '#fbbf24'}">${st.ai ? `${esc(st.provider)} · ${esc(st.model)}` : 'offline'}</span></div>
           <div class="row spread"><span>Spotify</span>${isConnected() ? '<button class="btn danger sm" id="sp-off">Disconnect</button>' : `<button class="btn spotify sm" id="sp-on" ${st.spotifyClientId ? '' : 'disabled title="Set SPOTIFY_CLIENT_ID in .env"'}>Connect</button>`}</div>
-          ${st.spotifyClientId ? '' : '<p class="small muted" style="margin:0">Embeds work without login. Add <code>SPOTIFY_CLIENT_ID</code> to <code>.env</code> to connect your account.</p>'}
+          ${st.spotifyClientId ? '' : `<div class="small muted">
+            <b style="color:var(--text)">To connect your Spotify account:</b>
+            <ol style="margin:6px 0 0;padding-left:18px;line-height:1.7">
+              <li>Create an app at <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a> (requires Spotify Premium)</li>
+              <li>Redirect URI: <code>${esc(location.origin)}/callback</code> <button class="btn ghost sm" id="copy-uri" style="padding:2px 8px">Copy</button></li>
+              <li>Tick <b>Web API</b>, save, then copy the <b>Client ID</b></li>
+              <li>Add <code>SPOTIFY_CLIENT_ID=…</code> to <code>.env</code> and restart the server</li>
+            </ol>
+            <p style="margin:6px 0 0">The sidebar player works without any of this.</p></div>`}
         </div>
         <div class="card stack">
           <h3>Courses</h3>
@@ -58,6 +66,7 @@ export function render(el) {
     $('#autoPlan').onchange = (e) => store.update((x) => (x.settings.autoStudyPlan = e.target.checked));
     $('#sp-on')?.addEventListener('click', connect);
     $('#sp-off')?.addEventListener('click', () => { disconnect(); draw(); });
+    $('#copy-uri')?.addEventListener('click', () => navigator.clipboard.writeText(`${location.origin}/callback`).then(() => toast('Redirect URI copied')));
     el.querySelectorAll('[data-c]').forEach((row) => {
       const id = row.dataset.c;
       const upd = (patch) => store.update((x) => Object.assign(x.courses.find((c) => c.id === id), patch));

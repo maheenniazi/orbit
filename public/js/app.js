@@ -57,6 +57,12 @@ function paintMiniTimer(t) {
 }
 
 async function boot() {
+  // Spotify rejects "localhost" redirect URIs, and data is stored per address,
+  // so always use 127.0.0.1.
+  if (location.hostname === 'localhost') {
+    location.replace(location.href.replace('//localhost', '//127.0.0.1'));
+    return;
+  }
   document.getElementById('brand-name').textContent = APP_NAME;
   paintIcons();
   document.getElementById('mini-timer').onclick = () => (location.hash = '#/focus');

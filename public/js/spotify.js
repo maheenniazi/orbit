@@ -52,7 +52,7 @@ export async function connect() {
 export async function handleCallback() {
   const p = new URLSearchParams(location.search);
   history.replaceState(null, '', '/#/settings');
-  if (p.get('error')) return toast(`Spotify: ${p.get('error')}`);
+  if (p.get('error')) return toast(p.get('error') === 'access_denied' ? 'Spotify connect was cancelled' : `Spotify: ${p.get('error')}`, { timeout: 8000 });
   const code = p.get('code');
   const verifier = localStorage.getItem(TK + ':verifier');
   if (!code || !verifier) return;
@@ -63,7 +63,12 @@ export async function handleCallback() {
       body: new URLSearchParams({ client_id: getStatus().spotifyClientId, grant_type: 'authorization_code', code, redirect_uri: redirectUri(), code_verifier: verifier }),
     });
     const d = await r.json();
-    if (!r.ok) throw new Error(d.error_description || d.error);
+    if (!r.ok) {
+      const why = d.error_description || d.error || '';
+      throw new Error(/redirect/i.test(why)
+        ? `redirect URI mismatch. In the Spotify dashboard it must be exactly ${redirectUri()}`
+        : /client/i.test(why) ? 'wrong SPOTIFY_CLIENT_ID. Copy it again from the Spotify dashboard' : why);
+    }
     saveTokens(d);
     localStorage.removeItem(TK + ':verifier');
     toast('Spotify connected 🎧');
@@ -166,7 +171,9 @@ export function renderSpotify(el, modeKey = 'chill') {
       np.querySelector('.t').classList.toggle('muted', !item);
       np.querySelector('.small').textContent = item ? item.artists.map((a) => a.name).join(', ') + (d.is_playing ? '' : ' · paused') : 'Start something on any device';
     } catch (e) {
-      np.querySelector('.t').textContent = e.message;
+      np.querySelector('.t').textContent = e.status === 403
+        ? 'Spotify blocked access: the app owner needs Premium, and your account must be added under User Management in the Spotify dashboard'
+        : e.status === 401 ? 'Session expired, reconnect in Settings' : e.message;
     }
     return true;
   };
