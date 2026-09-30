@@ -1,11 +1,13 @@
 // Settings: profile, theme, automation, courses, playlists, integrations, data.
 import { store, COURSE_COLORS } from './store.js';
 import { getStatus } from './ai.js';
+import { mountModelPicker } from './modelpicker.js';
 import { esc } from './util.js';
 import { toast } from './ui.js';
 import { connect, disconnect, isConnected, parsePlaylistId, loadDock } from './spotify.js';
 
 export function render(el) {
+  let unmountPicker = null;
   const draw = () => {
     const s = store.get();
     const st = getStatus();
@@ -26,7 +28,8 @@ export function render(el) {
         </div>
         <div class="card stack">
           <h3>Integrations</h3>
-          <div class="row spread"><span>AI</span><span class="tag" style="--c:${st.ai ? '#34d399' : '#fbbf24'}">${st.ai ? `${esc(st.provider)} · ${esc(st.model)}` : 'offline'}</span></div>
+          <div class="row spread"><span>AI model</span>${st.ai ? '<div id="set-picker"></div>' : '<span class="tag" style="--c:#b98a2e">offline</span>'}</div>
+          ${st.ai ? `<p class="small muted" style="margin:0">connected: ${esc((st.providers || []).join(', '))}. add more keys in <code>.env</code> to get more models.</p>` : ''}
           <div class="row spread"><span>Spotify</span>${isConnected() ? '<button class="btn danger sm" id="sp-off">Disconnect</button>' : `<button class="btn spotify sm" id="sp-on" ${st.spotifyClientId ? '' : 'disabled title="Set SPOTIFY_CLIENT_ID in .env"'}>Connect</button>`}</div>
           ${st.spotifyClientId ? '' : `<div class="small muted">
             <b style="color:var(--text)">To connect your Spotify account:</b>
@@ -60,6 +63,7 @@ export function render(el) {
       </div>`;
 
     const $ = (q) => el.querySelector(q);
+    if ($('#set-picker')) { unmountPicker?.(); unmountPicker = mountModelPicker($('#set-picker'), { compact: true }); }
     $('#name').onchange = (e) => store.update((x) => (x.settings.name = e.target.value.trim()));
     el.querySelectorAll('[data-t]').forEach((b) => (b.onclick = () => store.update((x) => (x.settings.theme = b.dataset.t))));
     $('#autoFocus').onchange = (e) => store.update((x) => (x.settings.autoFocus = e.target.checked));
@@ -98,7 +102,8 @@ export function render(el) {
   };
   draw();
   // Only re-render on non-text changes to avoid stealing input focus
-  return store.subscribe(() => { if (!el.contains(document.activeElement) || document.activeElement.type === 'checkbox' || document.activeElement.tagName === 'BUTTON') draw(); });
+  const offStore = store.subscribe(() => { if (!el.contains(document.activeElement) || document.activeElement.type === 'checkbox' || document.activeElement.tagName === 'BUTTON') draw(); });
+  return () => { offStore(); unmountPicker?.(); };
 }
 
 export { COURSE_COLORS };

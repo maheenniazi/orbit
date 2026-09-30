@@ -1,6 +1,7 @@
 // "Ask" chat: AI assistant grounded in your calendar + notes. Can add events. Offline fallback answers schedule questions.
 import { store, addEvents, getCourse } from './store.js';
-import { aiEnabled, ask } from './ai.js';
+import { aiEnabled, ask, lastUsedModel, modelInfo, loadModels } from './ai.js';
+import { mountModelPicker } from './modelpicker.js';
 import { esc, md, todayISO, addDays, fmtDate, fmtTime, TYPE_META, EXAM_TYPES, daysUntil } from './util.js';
 import { spinner, toast } from './ui.js';
 import { getFocusState, syncStudyPlans } from './focus.js';
@@ -94,7 +95,7 @@ export function render(el) {
   el.innerHTML = `
     <div class="page-head view-enter">
       <div><div class="kicker">ask · ${aiEnabled() ? 'connected' : 'offline'}</div><h1>ask <em>orbit</em></h1><p>${aiEnabled() ? 'Knows your calendar, courses and notes. Ask it to explain, plan, quiz you, or add events.' : 'Offline mode: schedule questions only. Connect Kiro (or another AI key) for the full assistant.'}</p></div>
-      <button class="btn ghost sm" id="clear">clear chat</button>
+      <div class="row"><div id="picker"></div><button class="btn ghost sm" id="clear">clear chat</button></div>
     </div>
     <div class="card chat view-enter">
       <div class="chat-log" id="log"></div>
@@ -114,7 +115,9 @@ export function render(el) {
       log.querySelectorAll('[data-q]').forEach((b) => (b.onclick = () => { input.value = b.dataset.q; send(); }));
       return;
     }
-    log.innerHTML = msgs.map((m) => `<div class="msg ${m.role}">${m.role === 'assistant' ? md(m.content) : esc(m.content).replace(/\n/g, '<br>')}</div>`).join('');
+    log.innerHTML = msgs.map((m) => m.role === 'assistant'
+      ? `<div class="msg assistant">${md(m.content)}${m.model ? `<div class="msg-model">${esc(modelInfo(m.model).label)}</div>` : ''}</div>`
+      : `<div class="msg user">${esc(m.content).replace(/\n/g, '<br>')}</div>`).join('');
     log.scrollTop = log.scrollHeight;
   };
 
@@ -129,15 +132,17 @@ export function render(el) {
     log.insertAdjacentHTML('beforeend', `<div class="msg assistant" id="pending">${spinner()}</div>`);
     log.scrollTop = log.scrollHeight;
     let reply;
+    let usedModel = null;
     try {
       if (aiEnabled()) {
         const history = store.get().chat.slice(-16).map(({ role, content }) => ({ role, content }));
         reply = applyActions(await ask({ system: `${SYSTEM}\n\n# Student context\n${contextBlock(text)}`, messages: history, maxTokens: 1500 }));
+        usedModel = lastUsedModel();
       } else reply = localAnswer(text);
     } catch (e) {
       reply = `${e.message}\n\n${localAnswer(text)}`;
     }
-    store.update((st) => st.chat.push({ role: 'assistant', content: reply || 'Done', ts: Date.now() }));
+    store.update((st) => st.chat.push({ role: 'assistant', content: reply || 'Done', model: usedModel, ts: Date.now() }));
     busy = false;
     drawLog();
     input.focus();
@@ -149,7 +154,10 @@ export function render(el) {
   el.querySelector('#clear').onclick = () => { store.update((st) => (st.chat = [])); drawLog(); };
 
   drawLog();
+  const unmountPicker = mountModelPicker(el.querySelector('#picker'));
+  loadModels().then(drawLog); // model names for the labels under replies
   const pre = sessionStorage.getItem(PREFILL_KEY);
   if (pre) { sessionStorage.removeItem(PREFILL_KEY); input.value = pre; send(); }
   else input.focus();
+  return unmountPicker;
 }

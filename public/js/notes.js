@@ -1,6 +1,7 @@
 // Notes: generate structured notes from lecture text / slides / readings (AI or offline), edit in markdown.
 import { store, getCourse, courseColor } from './store.js';
-import { aiEnabled, ask, getStatus } from './ai.js';
+import { aiEnabled, ask, modelInfo } from './ai.js';
+import { mountModelPicker } from './modelpicker.js';
 import { esc, md, uid, fmtDate, todayISO } from './util.js';
 import { modal, toast, readFilesText, enableImagePaste, ACCEPT, spinner } from './ui.js';
 import { askAbout } from './chat.js';
@@ -156,12 +157,14 @@ export function render(el) {
       <div class="row spread">
         <div class="seg" id="g-style">${Object.entries(STYLES).map(([k, v], i) => `<button data-s="${k}" class="${i === 0 ? 'on' : ''}">${v}</button>`).join('')}</div>
       </div>
-      <div class="row spread"><span class="small muted">${aiEnabled() ? `written by ${getStatus().provider === 'kiro' ? 'kiro' : 'ai'} · can take 10–30s` : 'Offline mode: extractive notes. Connect Kiro or an AI key for AI-written notes.'}</span><button class="btn" id="g-go">generate</button></div>
+      <div class="row spread"><span class="small muted">${aiEnabled() ? `<span class="row" style="gap:8px">written by <span id="g-picker"></span> · can take 10–30s</span>` : 'Offline mode: extractive notes. Connect Kiro or an AI key for AI-written notes.'}</span><button class="btn" id="g-go">generate</button></div>
       <div id="g-status"></div>`, {
       wide: true,
       onMount(body, close) {
         const $ = (q) => body.querySelector(q);
         let style = 'outline';
+        const unmount = body.querySelector('#g-picker') ? mountModelPicker(body.querySelector('#g-picker'), { compact: true }) : () => {};
+        body.closest('.modal-backdrop')?.addEventListener('transitionend', () => { if (!document.body.contains(body)) unmount(); });
         body.querySelectorAll('[data-s]').forEach((b) => (b.onclick = () => { style = b.dataset.s; body.querySelectorAll('[data-s]').forEach((x) => x.classList.toggle('on', x === b)); }));
         const gStatus = (m) => ($('#g-status').innerHTML = spinner(m));
         const loadFiles = async (files) => {

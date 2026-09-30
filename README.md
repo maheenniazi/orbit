@@ -17,6 +17,14 @@ It has no dependencies and works offline. Adding keys turns on the smart feature
 | `KIRO_API_KEY` **or** `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | AI syllabus parsing, the full chat assistant, AI-written notes |
 | `SPOTIFY_CLIENT_ID` | Account connect: now playing, playback controls, your own playlists |
 
+### Choosing a model
+
+Every provider you connect in `.env` is available at the same time: `KIRO_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` and `GEMINI_API_KEY`. The **model picker** in *ask* (also in Settings and the notes generator) lists every model your keys can use, fetched live from each provider, grouped by provider and searchable. Your choice is saved in the browser and used everywhere: chat, notes, syllabus parsing and careers. Each chat reply shows which model wrote it.
+
+For Kiro, the list comes from `kiro-cli chat --list-models`. Kiro CLI has no per-run model flag, so orbit makes a text-only copy of its agent pinned to the model you picked (`kiro-agent/.kiro/agents/study-os-m-*.json`, created automatically). Models cost different amounts of Kiro credits.
+
+Set `AI_MODEL=provider:model` to choose the default for new browsers. `OPENAI_BASE_URL` can point at any OpenAI-compatible service, such as OpenRouter or Ollama.
+
 ### Using Kiro as the AI
 
 The app can run all of its AI (chat, notes, syllabus parsing) through your Kiro subscription using [Kiro CLI headless mode](https://kiro.dev/docs/cli/headless/).
