@@ -1,5 +1,5 @@
 // Shared helpers: dates, escaping, markdown.
-export const APP_NAME = 'Study OS'; // working title, rename here
+export const APP_NAME = 'orbit'; // rename here
 
 export const pad = (n) => String(n).padStart(2, '0');
 export const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -45,17 +45,17 @@ export const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toS
 
 export const EXAM_TYPES = ['exam', 'midterm', 'final'];
 export const TYPE_META = {
-  final: { label: 'Final', emoji: '🎯' },
-  midterm: { label: 'Midterm', emoji: '📝' },
-  exam: { label: 'Exam', emoji: '📝' },
-  quiz: { label: 'Quiz', emoji: '❓' },
-  assignment: { label: 'Assignment', emoji: '📄' },
-  project: { label: 'Project', emoji: '🧩' },
-  reading: { label: 'Reading', emoji: '📖' },
-  lab: { label: 'Lab', emoji: '🧪' },
-  study: { label: 'Study', emoji: '🧠' },
-  class: { label: 'Class', emoji: '🏫' },
-  other: { label: 'Event', emoji: '✦' },
+  final: { label: 'Final' },
+  midterm: { label: 'Midterm' },
+  exam: { label: 'Exam' },
+  quiz: { label: 'Quiz' },
+  assignment: { label: 'Assignment' },
+  project: { label: 'Project' },
+  reading: { label: 'Reading' },
+  lab: { label: 'Lab' },
+  study: { label: 'Study' },
+  class: { label: 'Class' },
+  other: { label: 'Event' },
 };
 
 // Minimal, safe markdown renderer (escape first, then format).

@@ -71,7 +71,7 @@ export async function handleCallback() {
     }
     saveTokens(d);
     localStorage.removeItem(TK + ':verifier');
-    toast('Spotify connected 🎧');
+    toast('spotify connected');
   } catch (e) {
     toast(`Spotify connect failed: ${e.message}`);
   }
@@ -126,17 +126,17 @@ export function renderSpotify(el, modeKey = 'chill') {
   const pls = store.get().settings.playlists;
   if (!dockId) loadDock(pls[modeKey]?.id);
   const connected = isConnected();
-  const modeLabels = { chill: 'Cruise / Warm-up', rampup: 'Ramp-up', lockin: 'Lock-in', examday: 'Exam day' };
+  const modeLabels = { chill: 'drift / rising', rampup: 'gravity', lockin: 'eclipse', examday: 'liftoff' };
 
   el.innerHTML = `
     ${connected ? `<div class="now-playing" id="np"><img alt=""><div><div class="t muted">Loading…</div><div class="small muted"></div></div></div>
       <div class="player-controls"><button class="icon-btn" data-c="previous" title="Previous">⏮</button><button class="icon-btn" data-c="toggle" title="Play/Pause">⏯</button><button class="icon-btn" data-c="next" title="Next">⏭</button></div>` : ''}
-    <div class="small muted" style="margin:${connected ? '14px' : '0'} 0 8px">Mode playlists ${connected ? '' : '· plays in the sidebar'}</div>
+    <div class="small muted" style="margin:${connected ? '14px' : '0'} 0 8px">one playlist per phase ${connected ? '' : '· plays in the sidebar'}</div>
     <div class="playlist-grid">
       ${Object.entries(pls).map(([k, p]) => `<button class="pl-btn ${dockId === p.id ? 'on' : ''}" data-pl="${esc(p.id)}"><b>${esc(p.name)}</b><small>${modeLabels[k] || k}${k === modeKey ? ' · now' : ''}</small></button>`).join('')}
     </div>
     <div id="mine"></div>
-    ${connected ? '' : `<div class="row spread" style="margin-top:14px"><span class="small muted">Connect to see what's playing, control playback & use your playlists.</span><button class="btn spotify sm" id="sp-connect">Connect Spotify</button></div>`}
+    ${connected ? '' : `<div class="row spread" style="margin-top:14px"><span class="small muted">connect to see what’s playing and use your own playlists.</span><button class="btn spotify sm" id="sp-connect">connect spotify</button></div>`}
   `;
 
   el.querySelectorAll('[data-pl]').forEach((b) => (b.onclick = () => {

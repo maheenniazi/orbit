@@ -196,7 +196,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`\n  ✦ Study OS running at http://${HOST}:${PORT}`);
+  console.log(`\n  ✦ orbit running at http://${HOST}:${PORT}`);
   console.log(`  AI: ${provider ? `${provider} (${MODEL})` : 'offline mode (add a key to .env for full AI)'}`);
   if (provider === 'kiro') probeKiro();
   console.log(`  Spotify: ${process.env.SPOTIFY_CLIENT_ID ? 'client ID set' : 'embed-only (set SPOTIFY_CLIENT_ID for account connect)'}\n`);

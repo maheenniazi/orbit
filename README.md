@@ -1,4 +1,4 @@
-# Study OS *(working title)*
+# orbit
 
 A student workspace inspired by Notion that runs itself. Drop in a syllabus and the app fills your calendar, schedules study sessions before each exam, and switches into stricter focus modes as exams get closer.
 
@@ -35,7 +35,7 @@ Kiro runs as the `study-os` agent in `kiro-agent/`, which has **no tools**, so i
 
 - **Syllabus import:** accepts PDF, TXT or pasted text. Exams, quizzes, deadlines, readings, labs and no-class days go straight onto the calendar, and you can undo the import. Without an AI key, a built-in date parser handles formats like `Oct 14`, `10/14`, `14th November` and `2026-10-14`, and picks up times.
 - **Auto study plans:** each exam gets six sessions scheduled at 10, 7, 5, 3, 2 and 1 days out, each with its own goal.
-- **Focus modes:** these change automatically as the next exam approaches: Cruise, then Warm-up (14 days), Ramp-up (7), Lock-in (3) and Exam Day. Each mode changes the color theme, the pomodoro length and the playlist. You can override the mode by hand or turn on Zen to hide the sidebar.
+- **Focus phases:** these change automatically as the next exam approaches: drift, then rising (14 days), gravity (7), eclipse (3) and liftoff (exam day). Each phase changes the accent color (eclipse switches to the night theme), the pomodoro length and the playlist. You can override the mode by hand or turn on Zen to hide the sidebar.
 - **Calendar:** month view, colors per course, course filters, quick add (`bio quiz fri 2pm`), and `.ics` export to Google or Apple Calendar.
 - **Ask:** a chat that knows your schedule and notes. It can explain topics, quiz you and add events. In offline mode it only answers schedule questions.
 - **Notes generator:** turns lecture text or slides into an outline, Cornell notes, a summary or flashcards. Notes are editable markdown, and each has a "Quiz me" button.
@@ -53,4 +53,4 @@ public/js/app.js     router, theme, focus palette, sidebar widgets
   calendar.js  chat.js  notes.js  dashboard.js  settings.js  spotify.js
   store.js           localStorage state + pub/sub     util.js  helpers + markdown
 ```
-To rename the app, change `APP_NAME` in `public/js/util.js`.
+To rename the app, change `APP_NAME` in `public/js/util.js`. The look is defined by the CSS variables at the top of `public/styles.css`: paper/night themes, fonts, and accent colors.

@@ -4,7 +4,6 @@ import { loadStatus } from './ai.js';
 import { APP_NAME, esc } from './util.js';
 import { getFocusState, syncStudyPlans, onTimer, getTimer, fmtClock } from './focus.js';
 import { handleCallback, loadDock } from './spotify.js';
-import { ICONS } from './icons.js';
 import * as dashboard from './dashboard.js';
 import * as calendar from './calendar.js';
 import * as syllabus from './syllabus.js';
@@ -35,7 +34,7 @@ function applyChrome() {
   document.documentElement.dataset.theme = s.settings.theme;
   document.body.dataset.focus = f.mode.key;
   document.getElementById('focus-pill').innerHTML =
-    `<small>Focus mode</small><b>${esc(f.mode.label)}</b>${f.exam ? `<small>${esc(f.exam.title)} · ${f.days === 0 ? 'today' : `${f.days}d`}</small>` : ''}`;
+    `<small>phase</small><b>${esc(f.mode.label)}</b>${f.exam ? `<small>${esc(f.exam.title)} · ${f.days === 0 ? 'today' : `${f.days}d`}</small>` : ''}`;
   // When the mode escalates, switch the soundtrack to match.
   if (f.mode.key !== lastFocusKey) {
     lastFocusKey = f.mode.key;
@@ -43,16 +42,11 @@ function applyChrome() {
   }
 }
 
-function paintIcons() {
-  document.querySelector('.logo').innerHTML = ICONS.logo;
-  document.querySelectorAll('.nav a').forEach((a) => (a.querySelector('.ico').innerHTML = ICONS[a.dataset.route] || ''));
-}
-
 function paintMiniTimer(t) {
   const el = document.getElementById('mini-timer');
   const active = t.running || (t.total && t.remaining < t.total);
   el.hidden = !active || location.hash.startsWith('#/focus');
-  if (!el.hidden) el.innerHTML = `${t.phase === 'work' ? '◉' : '☕'} ${fmtClock(t.remaining)}${t.running ? '' : ' · paused'}`;
+  if (!el.hidden) el.innerHTML = `${t.phase === 'work' ? 'focus' : 'break'} · ${fmtClock(t.remaining)}${t.running ? '' : ' · paused'}`;
   document.title = t.running ? `${fmtClock(t.remaining)} · ${APP_NAME}` : APP_NAME;
 }
 
@@ -64,7 +58,6 @@ async function boot() {
     return;
   }
   document.getElementById('brand-name').textContent = APP_NAME;
-  paintIcons();
   document.getElementById('mini-timer').onclick = () => (location.hash = '#/focus');
   await loadStatus();
   if (location.pathname === '/callback') await handleCallback();

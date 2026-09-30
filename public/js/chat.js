@@ -66,7 +66,7 @@ function localAnswer(q) {
   const today = todayISO();
   const list = (evs) => evs.length
     ? evs.map((e) => `- **${e.title}**: ${fmtDate(e.date)}${e.time ? ' ' + fmtTime(e.time) : ''} ${getCourse(e.courseId) ? `(${getCourse(e.courseId).code || getCourse(e.courseId).name})` : ''}`).join('\n')
-    : '- Nothing found ✦';
+    : '- Nothing found';
   const sorted = [...s.events].filter((e) => !e.done).sort((a, b) => a.date.localeCompare(b.date));
   if (/exam|midterm|final|test/.test(t)) {
     const ex = sorted.filter((e) => EXAM_TYPES.includes(e.type) && e.date >= today);
@@ -88,14 +88,14 @@ export function render(el) {
   const s = store.get();
   el.innerHTML = `
     <div class="page-head view-enter">
-      <div><h1>Ask <em>anything</em></h1><p>${aiEnabled() ? 'Knows your calendar, courses and notes. Ask it to explain, plan, quiz you, or add events.' : 'Offline mode: schedule questions only. Connect Kiro (or another AI key) for the full assistant.'}</p></div>
-      <button class="btn ghost sm" id="clear">Clear chat</button>
+      <div><div class="kicker">ask · ${aiEnabled() ? 'connected' : 'offline'}</div><h1>ask <em>orbit</em></h1><p>${aiEnabled() ? 'Knows your calendar, courses and notes. Ask it to explain, plan, quiz you, or add events.' : 'Offline mode: schedule questions only. Connect Kiro (or another AI key) for the full assistant.'}</p></div>
+      <button class="btn ghost sm" id="clear">clear chat</button>
     </div>
     <div class="card chat view-enter">
       <div class="chat-log" id="log"></div>
       <div class="chat-input">
-        <textarea id="in" rows="1" placeholder="What's due this week? · Quiz me on my notes · Explain mitosis like I'm 5"></textarea>
-        <button class="btn" id="send">Send</button>
+        <textarea id="in" rows="1" placeholder="what’s due this week? · quiz me on my notes · explain mitosis like i’m 5"></textarea>
+        <button class="btn" id="send">send</button>
       </div>
     </div>`;
   const log = el.querySelector('#log');
@@ -104,8 +104,8 @@ export function render(el) {
   const drawLog = () => {
     const msgs = store.get().chat;
     if (!msgs.length) {
-      log.innerHTML = `<div class="empty" style="margin:auto"><span class="big">✧</span>How can I help you study today?
-        <div class="suggestions">${["What's due this week?", 'When is my next exam?', 'Make me a study plan for my next exam', 'Add: essay draft due Friday'].map((q) => `<button data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div></div>`;
+      log.innerHTML = `<div class="empty" style="margin:auto"><span class="big">ask me anything.</span>your schedule, your notes, or that one concept you still don’t get
+        <div class="suggestions">${["what's due this week?", 'when is my next exam?', 'make me a study plan for my next exam', 'add: essay draft due friday'].map((q) => `<button data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div></div>`;
       log.querySelectorAll('[data-q]').forEach((b) => (b.onclick = () => { input.value = b.dataset.q; send(); }));
       return;
     }
@@ -130,9 +130,9 @@ export function render(el) {
         reply = applyActions(await ask({ system: `${SYSTEM}\n\n# Student context\n${contextBlock(text)}`, messages: history, maxTokens: 1500 }));
       } else reply = localAnswer(text);
     } catch (e) {
-      reply = `⚠️ ${e.message}\n\n${localAnswer(text)}`;
+      reply = `${e.message}\n\n${localAnswer(text)}`;
     }
-    store.update((st) => st.chat.push({ role: 'assistant', content: reply || 'Done ✦', ts: Date.now() }));
+    store.update((st) => st.chat.push({ role: 'assistant', content: reply || 'Done', ts: Date.now() }));
     busy = false;
     drawLog();
     input.focus();

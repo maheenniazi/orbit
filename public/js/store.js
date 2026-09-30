@@ -3,7 +3,9 @@ import { uid } from './util.js';
 
 const KEY = 'studyos:v1';
 
-export const COURSE_COLORS = ['#a78bfa', '#f472b6', '#60a5fa', '#34d399', '#fbbf24', '#fb7185', '#22d3ee', '#c084fc'];
+// Earthy "vintage" palette: terracotta, sage, dusty navy, mustard, mauve, cocoa, teal, rose
+export const COURSE_COLORS = ['#c0582f', '#6f7f4f', '#3f5a78', '#b98a2e', '#a0526b', '#7a5c45', '#4f7d74', '#c27c86'];
+const OLD_COLORS = ['#a78bfa', '#f472b6', '#60a5fa', '#34d399', '#fbbf24', '#fb7185', '#22d3ee', '#c084fc'];
 
 export const DEFAULT_PLAYLISTS = {
   chill: { name: 'Lofi Beats', id: '37i9dQZF1DWWQRwui0ExPn' },
@@ -19,7 +21,8 @@ const defaults = () => ({
   chat: [], // {role, content, ts}
   focusLog: [], // {date, minutes}
   settings: {
-    theme: 'dark',
+    theme: 'light',
+    orbitTheme: true,
     name: '',
     autoFocus: true,
     focusOverride: null, // null = automatic, or a mode key
@@ -33,6 +36,13 @@ function load() {
     const raw = JSON.parse(localStorage.getItem(KEY));
     if (!raw) return defaults();
     const d = defaults();
+    // One-time switch to the new paper theme for data saved before the orbit redesign
+    if (raw.settings && !raw.settings.orbitTheme) Object.assign(raw.settings, { theme: 'light', orbitTheme: true });
+    // Swap neon course colors from the old theme for the new palette
+    (raw.courses || []).forEach((c) => {
+      const i = OLD_COLORS.indexOf(c.color);
+      if (i >= 0) c.color = COURSE_COLORS[i];
+    });
     return { ...d, ...raw, settings: { ...d.settings, ...raw.settings, playlists: { ...d.settings.playlists, ...(raw.settings?.playlists || {}) } } };
   } catch {
     return defaults();

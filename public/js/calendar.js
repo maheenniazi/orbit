@@ -9,10 +9,10 @@ export function openEventModal(evt = {}) {
   const isNew = !evt.id;
   const e = { title: '', type: 'assignment', date: todayISO(), time: '', notes: '', courseId: store.get().courses[0]?.id || '', done: false, ...evt };
   const courses = store.get().courses;
-  modal(isNew ? 'New event' : 'Edit event', `
+  modal(isNew ? 'new event' : 'edit event', `
     <label class="field">Title<input id="e-title" value="${esc(e.title)}" placeholder="e.g. Problem Set 4"></label>
     <div class="row">
-      <label class="field">Type<select id="e-type">${Object.entries(TYPE_META).map(([k, m]) => `<option value="${k}" ${k === e.type ? 'selected' : ''}>${m.emoji} ${m.label}</option>`).join('')}</select></label>
+      <label class="field">Type<select id="e-type">${Object.entries(TYPE_META).map(([k, m]) => `<option value="${k}" ${k === e.type ? 'selected' : ''}>${m.label}</option>`).join('')}</select></label>
       <label class="field">Course<select id="e-course"><option value="">No course</option>${courses.map((c) => `<option value="${c.id}" ${c.id === e.courseId ? 'selected' : ''}>${esc(c.code || c.name)}</option>`).join('')}<option value="__new">+ New course…</option></select></label>
     </div>
     <div class="row">
@@ -64,7 +64,7 @@ function exportICS() {
   const s = store.get();
   const stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
   const escI = (t) => String(t).replace(/[\\;,]/g, (c) => '\\' + c).replace(/\n/g, '\\n');
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Study OS//EN', 'CALSCALE:GREGORIAN'];
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//orbit//EN', 'CALSCALE:GREGORIAN'];
   for (const e of s.events) {
     const d = e.date.replace(/-/g, '');
     const c = getCourse(e.courseId);
@@ -84,7 +84,7 @@ function exportICS() {
   lines.push('END:VCALENDAR');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([lines.join('\r\n')], { type: 'text/calendar' }));
-  a.download = 'study-os.ics';
+  a.download = 'orbit.ics';
   a.click();
 }
 
@@ -113,7 +113,7 @@ export function render(el) {
       const evs = byDay[iso] || [];
       cells += `<div class="cal-cell ${d.getMonth() !== mo ? 'other' : ''} ${iso === today ? 'today' : ''} ${iso === view.selected ? 'sel' : ''}" data-day="${iso}">
         <span class="num">${d.getDate()}</span>
-        ${evs.slice(0, 3).map((e) => `<div class="cal-chip ${EXAM_TYPES.includes(e.type) ? 'exam' : ''} ${e.done ? 'done' : ''}" style="--c:${courseColor(e.courseId)}" data-ev="${e.id}" title="${esc(e.title)}">${TYPE_META[e.type]?.emoji || ''} ${esc(e.title)}</div>`).join('')}
+        ${evs.slice(0, 3).map((e) => `<div class="cal-chip ${EXAM_TYPES.includes(e.type) ? 'exam' : ''} ${e.type === 'study' ? 'study' : ''} ${e.done ? 'done' : ''}" style="--c:${courseColor(e.courseId)}" data-ev="${e.id}" title="${esc(e.title)}">${esc(e.title)}</div>`).join('')}
         ${evs.length > 3 ? `<span class="cal-more">+${evs.length - 3} more</span>` : ''}
       </div>`;
     }
@@ -121,34 +121,34 @@ export function render(el) {
     const dayEvs = (byDay[view.selected] || []);
     el.innerHTML = `
       <div class="page-head">
-        <div><h1>Calendar</h1><p>${s.events.length} events across ${s.courses.length} course${s.courses.length === 1 ? '' : 's'}</p></div>
+        <div><div class="kicker">${s.events.length} events · ${s.courses.length} course${s.courses.length === 1 ? '' : 's'}</div><h1>the <em>calendar</em></h1></div>
         <div class="row">
-          <button class="btn ghost sm" id="ics" title="Import into Google/Apple Calendar">⇩ Export .ics</button>
-          <a class="btn ghost sm" href="#/import">⇪ Import syllabus</a>
-          <button class="btn sm" id="new">+ New event</button>
+          <button class="btn ghost sm" id="ics" title="Import into Google/Apple Calendar">export .ics</button>
+          <a class="btn ghost sm" href="#/import">import syllabus</a>
+          <button class="btn sm" id="new">+ new event</button>
         </div>
       </div>
       <div class="cal-layout">
         <div class="card">
           <div class="cal-head">
-            <div class="row"><button class="icon-btn" id="prev">‹</button><span class="title">${MONTHS[mo]} <span class="faint">${y}</span></span><button class="icon-btn" id="next">›</button><button class="btn ghost sm" id="today">Today</button></div>
+            <div class="row"><button class="icon-btn" id="prev">‹</button><span class="title">${MONTHS[mo].toLowerCase()} <span class="faint">${y}</span></span><button class="icon-btn" id="next">›</button><button class="btn ghost sm" id="today">today</button></div>
             <div class="filters">
               ${s.courses.map((c) => `<span class="chip ${view.hidden.has(c.id) ? '' : 'on'}" data-f="${c.id}"><span class="dot-c" style="background:${c.color}"></span>${esc(c.code || c.name)}</span>`).join('')}
-              <span class="chip ${view.hideStudy ? '' : 'on'}" data-study>🧠 Study plan</span>
+              <span class="chip ${view.hideStudy ? '' : 'on'}" data-study>study plan</span>
             </div>
           </div>
           <div class="cal-grid">${WEEKDAYS.map((d) => `<div class="cal-dow">${d}</div>`).join('')}${cells}</div>
         </div>
         <div class="card">
-          <h3>${fmtDate(view.selected, { weekday: 'long', month: 'long', day: 'numeric' })}</h3>
-          <div class="quick-add" style="margin-bottom:12px"><input id="qa" placeholder="Quick add: “lab report 5pm”"><button class="btn sm" id="qa-go">Add</button></div>
+          <h3>${fmtDate(view.selected, { weekday: 'long', month: 'short', day: 'numeric' })}</h3>
+          <div class="quick-add" style="margin-bottom:12px"><input id="qa" placeholder="quick add: “lab report 5pm”"><button class="btn sm" id="qa-go">add</button></div>
           ${dayEvs.length ? `<div class="ev-list">${dayEvs.map((e) => `
             <div class="ev ${e.done ? 'done' : ''}" data-ev="${e.id}" style="--c:${courseColor(e.courseId)}">
               <input type="checkbox" data-done="${e.id}" ${e.done ? 'checked' : ''}>
               <span class="bar"></span>
-              <div><div class="t">${TYPE_META[e.type]?.emoji || ''} ${esc(e.title)}</div><div class="s">${esc(getCourse(e.courseId)?.code || getCourse(e.courseId)?.name || TYPE_META[e.type]?.label || '')}${e.notes ? ' · ' + esc(e.notes) : ''}</div></div>
+              <div><div class="t">${esc(e.title)}</div><div class="s">${esc(getCourse(e.courseId)?.code || getCourse(e.courseId)?.name || TYPE_META[e.type]?.label || '')}${e.notes ? ' · ' + esc(e.notes) : ''}</div></div>
               <span class="when">${fmtTime(e.time)}</span>
-            </div>`).join('')}</div>` : '<div class="empty">Nothing planned. Enjoy it ✦</div>'}
+            </div>`).join('')}</div>` : '<div class="empty"><span class="big">free day.</span>nothing planned</div>'}
         </div>
       </div>`;
 

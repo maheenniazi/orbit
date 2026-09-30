@@ -1,29 +1,53 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Study OS</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>" />
+  <title>Orbit</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='13' fill='%23b3261e'/><ellipse cx='32' cy='32' rx='28' ry='9' fill='none' stroke='%232b2118' stroke-width='3' transform='rotate(-20 32 32)'/></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&family=Caveat:wght@500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <div class="bg-blobs" aria-hidden="true"><span></span><span></span><span></span></div>
+  <!-- decorative night-sky / orbit line art -->
+  <svg class="sky" aria-hidden="true" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+    <g fill="none" stroke="currentColor" stroke-width="1">
+      <ellipse cx="1180" cy="120" rx="520" ry="150" transform="rotate(-14 1180 120)" />
+      <ellipse cx="1180" cy="120" rx="360" ry="96" transform="rotate(-14 1180 120)" stroke-dasharray="2 7" />
+      <ellipse cx="260" cy="860" rx="600" ry="170" transform="rotate(12 260 860)" />
+    </g>
+    <g fill="currentColor">
+      <circle cx="1390" cy="-4" r="4" /><circle cx="770" cy="236" r="6" />
+      <circle cx="836" cy="742" r="3" /><circle cx="1320" cy="600" r="1.6" /><circle cx="560" cy="120" r="1.4" />
+      <circle cx="980" cy="420" r="1.2" /><circle cx="1240" cy="820" r="1.8" /><circle cx="420" cy="520" r="1.2" />
+    </g>
+    <g class="sparkles" fill="currentColor">
+      <path d="M1060 330 l3 11 11 3 -11 3 -3 11 -3 -11 -11 -3 11 -3z" />
+      <path d="M640 800 l2 8 8 2 -8 2 -2 8 -2 -8 -8 -2 8 -2z" />
+      <path d="M1370 460 l2 7 7 2 -7 2 -2 7 -2 -7 -7 -2 7 -2z" />
+    </g>
+  </svg>
 
   <aside class="sidebar">
-    <a class="brand" href="#/dashboard"><span class="logo">✦</span><span class="brand-name" id="brand-name">Study OS</span></a>
+    <a class="brand" href="#/dashboard">
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="12" class="planet" />
+        <ellipse cx="32" cy="32" rx="27" ry="8.5" fill="none" stroke="currentColor" stroke-width="2.2" transform="rotate(-20 32 32)" />
+        <path d="M20.4 27.3 A12 12 0 0 1 43.6 36.7" fill="none" class="planet-cover" />
+      </svg>
+      <span class="brand-name" id="brand-name">orbit</span>
+    </a>
 
     <nav class="nav">
-      <a href="#/dashboard" data-route="dashboard"><span class="ico">⌂</span>Home</a>
-      <a href="#/calendar" data-route="calendar"><span class="ico">▦</span>Calendar</a>
-      <a href="#/import" data-route="import"><span class="ico">⇪</span>Syllabus import</a>
-      <a href="#/notes" data-route="notes"><span class="ico">✎</span>Notes</a>
-      <a href="#/chat" data-route="chat"><span class="ico">✧</span>Ask</a>
-      <a href="#/focus" data-route="focus"><span class="ico">◉</span>Focus</a>
-      <a href="#/settings" data-route="settings"><span class="ico">⚙</span>Settings</a>
+      <a href="#/dashboard" data-route="dashboard"><span class="ico">01</span>home</a>
+      <a href="#/calendar" data-route="calendar"><span class="ico">02</span>calendar</a>
+      <a href="#/import" data-route="import"><span class="ico">03</span>syllabus</a>
+      <a href="#/notes" data-route="notes"><span class="ico">04</span>notes</a>
+      <a href="#/chat" data-route="chat"><span class="ico">05</span>ask</a>
+      <a href="#/focus" data-route="focus"><span class="ico">06</span>focus</a>
+      <a href="#/settings" data-route="settings"><span class="ico">07</span>settings</a>
     </nav>
 
     <div class="sidebar-foot">

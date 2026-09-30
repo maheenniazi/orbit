@@ -5,16 +5,16 @@ import { toast } from './ui.js';
 import { renderSpotify } from './spotify.js';
 
 export const MODES = {
-  chill: { key: 'chill', label: 'Cruise', color: '#a78bfa', work: 25, brk: 5, playlist: 'chill',
-    blurb: 'No exams on the horizon. Keep up with readings and assignments.' },
-  warmup: { key: 'warmup', label: 'Warm-up', color: '#60a5fa', work: 30, brk: 5, playlist: 'chill',
-    blurb: 'An exam is within two weeks. Start collecting material and list the topics.' },
-  rampup: { key: 'rampup', label: 'Ramp-up', color: '#fbbf24', work: 45, brk: 10, playlist: 'rampup',
-    blurb: 'Under a week to go. Daily focused sessions, practice problems, and flashcards.' },
-  lockin: { key: 'lockin', label: 'Lock-in', color: '#fb7185', work: 50, brk: 10, playlist: 'lockin',
-    blurb: 'Exam in 1–3 days. Distractions hidden, long deep-work blocks, past exams under time.' },
-  examday: { key: 'examday', label: 'Exam Day', color: '#34d399', work: 20, brk: 10, playlist: 'examday',
-    blurb: 'Light review only. Eat, hydrate, breathe. You prepared for this.' },
+  chill: { key: 'chill', label: 'drift', work: 25, brk: 5, playlist: 'chill',
+    blurb: 'no exams in sight. stay on top of readings and assignments, and keep it soft.' },
+  warmup: { key: 'warmup', label: 'rising', work: 30, brk: 5, playlist: 'chill',
+    blurb: 'an exam is coming up within two weeks. gather your notes and list every topic.' },
+  rampup: { key: 'rampup', label: 'gravity', work: 45, brk: 10, playlist: 'rampup',
+    blurb: 'under a week out. daily sessions, practice problems, flashcards. main character energy.' },
+  lockin: { key: 'lockin', label: 'eclipse', work: 50, brk: 10, playlist: 'lockin',
+    blurb: '1–3 days left. the lights go down, distractions go away. long deep-work blocks and timed past exams.' },
+  examday: { key: 'examday', label: 'liftoff', work: 20, brk: 10, playlist: 'examday',
+    blurb: 'light review only. eat something, drink water, breathe. you prepared for this.' },
 };
 
 export function nextExam() {
@@ -121,7 +121,7 @@ function tick() {
       const mins = Math.round(timer.total / 60);
       store.update((s) => s.focusLog.push({ date: todayISO(), minutes: mins, task: timer.task }));
     }
-    notify(finished === 'work' ? 'Session done. Take a break ☕' : 'Break over. Back to it ✦');
+    notify(finished === 'work' ? 'session done. go take a break' : 'break’s over. back to it');
     resetTimer(finished === 'work' ? 'brk' : 'work');
     return;
   }
@@ -130,7 +130,7 @@ function tick() {
 function notify(msg) {
   toast(msg);
   try {
-    if ('Notification' in window && Notification.permission === 'granted') new Notification('Study OS', { body: msg });
+    if ('Notification' in window && Notification.permission === 'granted') new Notification('orbit', { body: msg });
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     [0, 0.18].forEach((delay, i) => {
       const o = ctx.createOscillator();
@@ -166,57 +166,59 @@ export function render(el) {
     const tasks = s.events.filter((e) => e.date === today && e.type !== 'class');
     const stats = focusStats();
     const t = getTimer();
+    const R = 132;
     el.innerHTML = `
       <div class="page-head view-enter">
         <div>
-          <h1>Focus · <em>${esc(f.mode.label)}</em></h1>
+          <div class="kicker">focus · ${f.auto ? 'set automatically' : 'manual override'}</div>
+          <h1>phase: <em>${esc(f.mode.label)}</em></h1>
           <p>${esc(f.mode.blurb)}</p>
         </div>
-        <label class="check"><input type="checkbox" id="zen" ${document.body.classList.contains('zen') ? 'checked' : ''}> Zen (hide sidebar)</label>
+        <label class="check small"><input type="checkbox" id="zen" ${document.body.classList.contains('zen') ? 'checked' : ''}> zen mode (hide sidebar)</label>
       </div>
       <div class="focus-layout view-enter">
         <div class="stack">
           <div class="card timer-card">
             <div class="ring">
-              <svg width="280" height="280" viewBox="0 0 280 280">
-                <defs><linearGradient id="grad" x1="0" x2="1"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent-2)"/></linearGradient></defs>
-                <circle class="track" cx="140" cy="140" r="126" fill="none" stroke-width="10"/>
-                <circle class="prog" id="prog" cx="140" cy="140" r="126" fill="none" stroke-width="10" stroke-dasharray="${2 * Math.PI * 126}" stroke-dashoffset="0"/>
+              <svg width="300" height="300" viewBox="0 0 300 300">
+                <circle class="track" cx="150" cy="150" r="${R}" fill="none" stroke-width="2"/>
+                <circle class="prog" id="prog" cx="150" cy="150" r="${R}" fill="none" stroke-width="2.5" stroke-dasharray="${2 * Math.PI * R}" stroke-dashoffset="0"/>
+                <g id="moon" style="transform-origin:150px 150px"><circle class="moon-halo" cx="${150 + R}" cy="150" r="13"/><circle class="moon" cx="${150 + R}" cy="150" r="7"/></g>
               </svg>
-              <div class="label"><div><div class="time" id="clock">${fmtClock(t.remaining || f.mode.work * 60)}</div><div class="phase" id="phase">${t.phase === 'work' ? 'Focus' : 'Break'} · ${f.mode.work}/${f.mode.brk}</div></div></div>
+              <div class="label"><div><div class="time" id="clock">${fmtClock(t.remaining || f.mode.work * 60)}</div><div class="phase" id="phase">${t.phase === 'work' ? 'focus' : 'break'} · ${f.mode.work}/${f.mode.brk}</div></div></div>
             </div>
-            <input id="task" placeholder="What are you working on?" value="${esc(t.task)}" style="max-width:360px;text-align:center">
+            <input id="task" placeholder="what are you working on?" value="${esc(t.task)}" style="max-width:360px;text-align:center;border-radius:99px">
             <div class="row">
-              <button class="btn" id="toggle">${t.running ? 'Pause' : 'Start'}</button>
-              <button class="btn ghost" id="reset">Reset</button>
-              <button class="btn ghost" id="skip">Skip to ${t.phase === 'work' ? 'break' : 'focus'}</button>
+              <button class="btn" id="toggle">${t.running ? 'pause' : 'start'}</button>
+              <button class="btn ghost" id="reset">reset</button>
+              <button class="btn ghost" id="skip">skip to ${t.phase === 'work' ? 'break' : 'focus'}</button>
             </div>
           </div>
           <div class="card">
-            <h3>Mode <span class="small faint">${f.auto ? 'automatic' : 'manual override'}</span></h3>
+            <h3>phases <span>${f.auto ? 'auto' : 'manual'}</span></h3>
             <div class="modes">
-              ${Object.values(MODES).map((m) => `<button class="mode-opt ${m.key === f.mode.key ? 'on' : ''}" data-mode="${m.key}" style="--mc:${m.color}"><b>${m.label}</b><small>${m.work}/${m.brk} min${m.key === f.autoKey ? ' · auto' : ''}</small></button>`).join('')}
+              ${Object.values(MODES).map((m) => `<button class="mode-opt ${m.key === f.mode.key ? 'on' : ''}" data-mode="${m.key}"><b>${m.label}</b><small>${m.work}/${m.brk} min${m.key === f.autoKey ? ' · auto' : ''}</small></button>`).join('')}
             </div>
-            ${f.auto ? '' : '<button class="btn ghost sm" id="auto" style="margin-top:12px">Back to automatic</button>'}
+            ${f.auto ? '' : '<button class="btn ghost sm" id="auto" style="margin-top:12px">back to automatic</button>'}
           </div>
         </div>
         <div class="stack">
-          ${f.exam ? `<div class="card">
-            <h3>Next exam</h3>
-            <div class="row spread"><div><div style="font-weight:600;font-size:16px">${esc(f.exam.title)}</div><div class="muted small">${esc(getCourse(f.exam.courseId)?.name || '')} · ${fmtDate(f.exam.date, { weekday: 'long', month: 'long', day: 'numeric' })}</div></div>
-            <div class="stat" style="color:${courseColor(f.exam.courseId)}">${f.days}<span class="small muted"> day${f.days === 1 ? '' : 's'}</span></div></div>
+          ${f.exam ? `<div class="card taped">
+            <h3>next exam</h3>
+            <div class="row spread"><div><div style="font-family:var(--serif);font-size:26px;line-height:1.1">${esc(f.exam.title)}</div><div class="muted small" style="margin-top:4px">${esc(getCourse(f.exam.courseId)?.name || '')} · ${fmtDate(f.exam.date, { weekday: 'long', month: 'long', day: 'numeric' }).toLowerCase()}</div></div>
+            <div class="stat" style="color:${courseColor(f.exam.courseId)}">${f.days}<span class="small muted" style="font-family:var(--mono)"> days</span></div></div>
           </div>` : ''}
           <div class="card">
-            <h3>Today's tasks</h3>
-            ${tasks.length ? `<div class="ev-list">${tasks.map((e) => `<label class="ev ${e.done ? 'done' : ''}" style="--c:${courseColor(e.courseId)}"><input type="checkbox" data-done="${e.id}" ${e.done ? 'checked' : ''}><span class="bar"></span><div><div class="t">${TYPE_META[e.type]?.emoji || ''} ${esc(e.title)}</div>${e.notes ? `<div class="s">${esc(e.notes)}</div>` : ''}</div><span></span></label>`).join('')}</div>` : '<div class="empty">Nothing scheduled today. Pick something from your calendar ✦</div>'}
+            <h3>today</h3>
+            ${tasks.length ? `<div class="ev-list">${tasks.map((e) => `<label class="ev ${e.done ? 'done' : ''}" style="--c:${courseColor(e.courseId)}"><input type="checkbox" data-done="${e.id}" ${e.done ? 'checked' : ''}><span class="bar"></span><div><div class="t">${esc(e.title)}</div>${e.notes ? `<div class="s">${esc(e.notes)}</div>` : ''}</div><span></span></label>`).join('')}</div>` : '<div class="empty">nothing scheduled today. pick something from your calendar.</div>'}
           </div>
           <div class="card">
-            <h3>Focus time</h3>
-            <div class="row" style="gap:30px"><div><div class="stat">${stats.today}</div><div class="small muted">min today</div></div><div><div class="stat">${Math.round(stats.week / 6) / 10}</div><div class="small muted">hrs this week</div></div></div>
-            <div class="progress" style="margin-top:14px"><span style="width:${Math.min(100, (stats.today / 180) * 100)}%"></span></div>
-            <div class="small faint" style="margin-top:6px">Daily goal: 3 hrs</div>
+            <h3>focus time</h3>
+            <div class="row" style="gap:34px"><div><div class="stat">${stats.today}</div><div class="small muted">min today</div></div><div><div class="stat">${Math.round(stats.week / 6) / 10}</div><div class="small muted">hrs this week</div></div></div>
+            <div class="progress" style="margin-top:16px"><span style="width:${Math.min(100, (stats.today / 180) * 100)}%"></span></div>
+            <div class="hand" style="margin-top:8px;font-size:19px">goal: 3 hrs a day</div>
           </div>
-          <div class="card"><h3>Soundtrack</h3><div id="spotify"></div></div>
+          <div class="card"><h3>soundtrack</h3><div id="spotify"></div></div>
         </div>
       </div>`;
 
@@ -243,9 +245,11 @@ export function render(el) {
     const total = t.total || getFocusState().mode.work * 60;
     const rem = t.total ? t.remaining : total;
     clock.textContent = fmtClock(rem);
-    const c = 2 * Math.PI * 126;
-    el.querySelector('#prog').style.strokeDashoffset = String(c * (1 - rem / total));
-    el.querySelector('#toggle').textContent = t.running ? 'Pause' : 'Start';
+    const c = 2 * Math.PI * 132;
+    const done = 1 - rem / total;
+    el.querySelector('#prog').style.strokeDashoffset = String(c * (1 - done));
+    el.querySelector('#moon').style.transform = `rotate(${done * 360}deg)`;
+    el.querySelector('#toggle').textContent = t.running ? 'pause' : 'start';
   };
 
   if (!timer.total) resetTimer();

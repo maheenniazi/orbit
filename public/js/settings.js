@@ -9,20 +9,20 @@ export function render(el) {
   const draw = () => {
     const s = store.get();
     const st = getStatus();
-    const labels = { chill: 'Cruise / Warm-up', rampup: 'Ramp-up', lockin: 'Lock-in', examday: 'Exam day' };
+    const labels = { chill: 'drift / rising', rampup: 'gravity', lockin: 'eclipse', examday: 'liftoff' };
     el.innerHTML = `
-      <div class="page-head"><div><h1>Settings</h1><p>Make it yours.</p></div></div>
+      <div class="page-head"><div><div class="kicker">settings</div><h1>make it <em>yours</em></h1></div></div>
       <div class="grid cols-3">
         <div class="card stack">
           <h3>You</h3>
           <label class="field">Your name<input id="name" value="${esc(s.settings.name)}" placeholder="What should we call you?"></label>
-          <div class="row spread"><span>Theme</span><div class="seg" id="theme"><button data-t="dark" class="${s.settings.theme === 'dark' ? 'on' : ''}">Dark</button><button data-t="light" class="${s.settings.theme === 'light' ? 'on' : ''}">Light</button></div></div>
+          <div class="row spread"><span>Theme</span><div class="seg" id="theme"><button data-t="light" class="${s.settings.theme === 'light' ? 'on' : ''}">paper</button><button data-t="dark" class="${s.settings.theme === 'dark' ? 'on' : ''}">night</button></div></div>
         </div>
         <div class="card stack">
           <h3>Automation</h3>
           <label class="check"><input type="checkbox" id="autoFocus" ${s.settings.autoFocus ? 'checked' : ''}> Auto-escalate focus mode as exams approach</label>
           <label class="check"><input type="checkbox" id="autoPlan" ${s.settings.autoStudyPlan ? 'checked' : ''}> Auto-schedule study sessions before exams</label>
-          <p class="small muted" style="margin:0">Warm-up at 14 days → Ramp-up at 7 → Lock-in at 3 → Exam day.</p>
+          <p class="small muted" style="margin:0">drift → rising (14 days out) → gravity (7) → eclipse (3) → liftoff (exam day).</p>
         </div>
         <div class="card stack">
           <h3>Integrations</h3>
@@ -88,13 +88,13 @@ export function render(el) {
     $('#export').onclick = () => {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([store.export()], { type: 'application/json' }));
-      a.download = `study-os-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `orbit-backup-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
     };
     $('#import').onchange = async (e) => {
       try { store.import(await e.target.files[0].text()); toast('Backup restored'); } catch { toast('Invalid backup file'); }
     };
-    $('#reset').onclick = () => confirm('Erase all courses, events, notes and chats?') && (store.reset(), toast('Fresh start ✦'));
+    $('#reset').onclick = () => confirm('Erase all courses, events, notes and chats?') && (store.reset(), toast('fresh start'));
   };
   draw();
   // Only re-render on non-text changes to avoid stealing input focus

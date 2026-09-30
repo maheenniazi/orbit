@@ -222,16 +222,16 @@ export function render(el) {
   const ai = aiEnabled();
   el.innerHTML = `
     <div class="page-head view-enter">
-      <div><h1>Drop in your <em>syllabus</em></h1><p>Every exam, deadline and reading lands on your calendar automatically, and study sessions get scheduled before each exam.</p></div>
+      <div><div class="kicker">syllabus import</div><h1>drop in your <em>syllabus</em></h1><p>every exam, deadline and reading lands on your calendar automatically, plus study sessions before each exam.</p></div>
     </div>
     <div class="grid dash view-enter">
       <div class="stack">
         <div class="card">
           <label class="drop" id="drop">
             <input type="file" id="file" accept=".pdf,.txt,.md,text/plain,application/pdf" hidden>
-            <div class="big">⇪</div><b>Drop a PDF or text file</b><span class="muted small">or click to browse · PDF, TXT, MD</span>
+            <div class="big">drop it here.</div><b>your syllabus, pdf or text</b><span class="muted small">or click to browse · pdf, txt, md</span>
           </label>
-          <div class="row" style="margin:14px 0 8px"><span class="muted small">…or paste it</span><span style="flex:1"></span><button class="btn ghost sm" id="sample">Try a sample syllabus</button></div>
+          <div class="row" style="margin:14px 0 8px"><span class="hand">…or paste it</span><span style="flex:1"></span><button class="btn ghost sm" id="sample">try a sample syllabus</button></div>
           <textarea id="text" placeholder="Paste syllabus text here" style="min-height:200px"></textarea>
           <div class="row" style="margin-top:12px">
             <label class="field">Course name (optional)<input id="cname" placeholder="Auto-detected"></label>
@@ -239,11 +239,11 @@ export function render(el) {
           </div>
           <div class="row spread" style="margin-top:14px">
             <label class="check small ${ai ? '' : 'faint'}"><input type="checkbox" id="useai" ${ai ? 'checked' : 'disabled'}> Smart AI parsing ${ai ? '' : '(connect Kiro or an AI key to enable)'}</label>
-            <button class="btn" id="go">✦ Import to calendar</button>
+            <button class="btn" id="go">import to calendar</button>
           </div>
         </div>
       </div>
-      <div class="card" id="result"><h3>Imported</h3><div class="empty"><span class="big">🗓️</span>Your extracted events will show up here.</div></div>
+      <div class="card" id="result"><h3>imported</h3><div class="empty"><span class="big">waiting…</span>your deadlines will land here</div></div>
     </div>`;
 
   const $ = (s) => el.querySelector(s);
@@ -275,8 +275,8 @@ export function render(el) {
     try {
       const res = await importSyllabus(text, { courseName: $('#cname').value.trim(), courseCode: $('#ccode').value.trim(), useAI: $('#useai').checked });
       showResult(res);
-      toast(`Added ${res.ids.length} events${res.planned ? ` + ${res.planned} study sessions` : ''}`, {
-        action: 'Undo',
+      toast(`added ${res.ids.length} events${res.planned ? ` + ${res.planned} study sessions` : ''}`, {
+        action: 'undo',
         onAction: () => { removeEvents(res.ids); $('#result').innerHTML = '<h3>Imported</h3><div class="empty">Import undone.</div>'; },
         timeout: 9000,
       });
@@ -292,12 +292,12 @@ export function render(el) {
     const color = courseColor(res.courseId);
     const evs = [...res.events].sort((a, b) => a.date.localeCompare(b.date));
     $('#result').innerHTML = `
-      <h3>Imported <span class="tag" style="--c:${color}">${esc(course?.code || course?.name || '')}</span></h3>
-      <p class="small muted" style="margin-top:-6px">${evs.length} events via ${res.method === 'ai' ? 'AI' : 'offline parser'}${res.planned ? ` · ${res.planned} study sessions auto-scheduled` : ''}. Remove anything that looks off.</p>
+      <h3>imported <span class="tag" style="--c:${color}">${esc(course?.code || course?.name || '')}</span></h3>
+      <p class="small muted" style="margin-top:-6px">${evs.length} events via ${res.method === 'ai' ? 'AI' : 'offline parser'}${res.planned ? ` · ${res.planned} study sessions auto-scheduled` : ''}. remove anything that looks off.</p>
       ${evs.length ? `<div class="ev-list">${evs.map((e) => `
         <div class="ev result-item" style="--c:${color};grid-template-columns:4px 1fr auto auto" data-id="${e.id}">
           <span class="bar"></span>
-          <div><div class="t">${TYPE_META[e.type]?.emoji || ''} ${esc(e.title)}</div><div class="s">${TYPE_META[e.type]?.label}${e.time ? ' · ' + e.time : ''}${e.notes ? ' · ' + esc(e.notes) : ''}</div></div>
+          <div><div class="t">${esc(e.title)}</div><div class="s">${TYPE_META[e.type]?.label}${e.time ? ' · ' + e.time : ''}${e.notes ? ' · ' + esc(e.notes) : ''}</div></div>
           <span class="when">${fmtDate(e.date)}</span>
           <button class="icon-btn" data-rm="${e.id}" title="Remove">✕</button>
         </div>`).join('')}</div>

@@ -83,8 +83,8 @@ export function render(el) {
     const note = notes.find((n) => n.id === selectedId);
     el.innerHTML = `
       <div class="page-head">
-        <div><h1>Notes</h1><p>Paste a lecture, upload slides, and get clean study notes in seconds.</p></div>
-        <div class="row"><button class="btn ghost sm" id="blank">+ Blank note</button><button class="btn sm" id="gen">✦ Generate notes</button></div>
+        <div><div class="kicker">notes · ${notes.length} saved</div><h1>the <em>notebook</em></h1><p>paste a lecture or upload slides and get clean study notes back.</p></div>
+        <div class="row"><button class="btn ghost sm" id="blank">+ blank page</button><button class="btn sm" id="gen">generate notes</button></div>
       </div>
       <div class="notes-layout">
         <div class="card" style="padding:12px">
@@ -92,22 +92,22 @@ export function render(el) {
           <div class="note-list" id="list">
             ${notes.length ? notes.map((n) => `<div class="note-item ${n.id === selectedId ? 'on' : ''}" data-id="${n.id}">
               <div class="row spread"><span class="t">${esc(n.title)}</span>${n.courseId ? `<span class="dot-c" style="background:${courseColor(n.courseId)}"></span>` : ''}</div>
-              <div class="s">${esc(n.body.replace(/^\s*(#+|>|[-*]\s+\[[ x]\]|[-*]|\d+\.)\s*/gim, '').replace(/[*`=]/g, '').replace(/\s+/g, ' ').slice(0, 120))}</div></div>`).join('') : '<div class="empty"><span class="big">✎</span>No notes yet</div>'}
+              <div class="s">${esc(n.body.replace(/^\s*(#+|>|[-*]\s+\[[ x]\]|[-*]|\d+\.)\s*/gim, '').replace(/[*`=]/g, '').replace(/\s+/g, ' ').slice(0, 120))}</div></div>`).join('') : '<div class="empty"><span class="big">empty.</span>no notes yet</div>'}
           </div>
         </div>
-        <div class="card" id="pane">
+        <div class="card paper-sheet" id="pane">
           ${note ? `
             <div class="row spread" style="margin-bottom:10px">
-              <span class="small muted">${esc(getCourse(note.courseId)?.name || 'General')} · updated ${fmtDate(new Date(note.updatedAt).toISOString().slice(0, 10))}</span>
+              <span class="small muted">${esc(getCourse(note.courseId)?.name || 'general')} · updated ${fmtDate(new Date(note.updatedAt).toISOString().slice(0, 10))}</span>
               <div class="row">
-                <button class="btn ghost sm" id="quiz">✧ Quiz me</button>
-                <button class="btn ghost sm" id="edit">${editing ? 'Done' : 'Edit'}</button>
-                <button class="icon-btn" id="del" title="Delete">🗑</button>
+                <button class="btn ghost sm" id="quiz">quiz me</button>
+                <button class="btn ghost sm" id="edit">${editing ? 'done' : 'edit'}</button>
+                <button class="icon-btn" id="del" title="Delete">delete</button>
               </div>
             </div>
             <input class="note-title" id="title" value="${esc(note.title)}">
             ${editing ? `<textarea class="editor" id="body">${esc(note.body)}</textarea>` : `<div class="prose">${md(note.body)}</div>`}
-          ` : `<div class="cta"><div class="big">📓</div><h3>Your notes live here</h3><p class="muted">Generate notes from lecture text or a PDF, or start from scratch.</p><button class="btn" id="gen2">✦ Generate notes</button></div>`}
+          ` : `<div class="cta"><div class="big">a blank page.</div><h3>your notes live here</h3><p class="muted">generate notes from lecture text or a pdf, or start from scratch.</p><button class="btn" id="gen2">generate notes</button></div>`}
         </div>
       </div>`;
 
@@ -146,8 +146,8 @@ export function render(el) {
 
   function openGenerator() {
     const courses = store.get().courses;
-    modal('Generate notes', `
-      <label class="drop" id="g-drop" style="padding:18px"><input type="file" id="g-file" accept=".pdf,.txt,.md" hidden><b>Upload slides / reading (PDF, TXT)</b><span class="muted small">or paste below</span></label>
+    modal('generate notes', `
+      <label class="drop" id="g-drop" style="padding:18px"><input type="file" id="g-file" accept=".pdf,.txt,.md" hidden><b>upload slides or a reading</b><span class="muted small">pdf, txt · or paste below</span></label>
       <textarea id="g-text" placeholder="Paste lecture transcript, slides text, or reading…" style="min-height:180px"></textarea>
       <div class="row">
         <label class="field">Title<input id="g-title" placeholder="e.g. Lecture 5: Memory"></label>
@@ -156,7 +156,7 @@ export function render(el) {
       <div class="row spread">
         <div class="seg" id="g-style">${Object.entries(STYLES).map(([k, v], i) => `<button data-s="${k}" class="${i === 0 ? 'on' : ''}">${v}</button>`).join('')}</div>
       </div>
-      <div class="row spread"><span class="small muted">${aiEnabled() ? `Uses ${getStatus().provider === 'kiro' ? 'Kiro' : 'AI'} ✦ (can take ~10–30s)` : 'Offline mode: extractive notes. Connect Kiro or an AI key for AI-written notes.'}</span><button class="btn" id="g-go">Generate</button></div>
+      <div class="row spread"><span class="small muted">${aiEnabled() ? `written by ${getStatus().provider === 'kiro' ? 'kiro' : 'ai'} · can take 10–30s` : 'Offline mode: extractive notes. Connect Kiro or an AI key for AI-written notes.'}</span><button class="btn" id="g-go">generate</button></div>
       <div id="g-status"></div>`, {
       wide: true,
       onMount(body, close) {
@@ -190,7 +190,7 @@ export function render(el) {
           store.update((st) => st.notes.push({ id, title, courseId: $('#g-course').value, body: bodyMd.trim(), source: text.slice(0, 20000), createdAt: Date.now(), updatedAt: Date.now() }));
           selectedId = id; editing = false;
           close(); draw();
-          toast('Notes ready ✦');
+          toast('notes ready');
         };
       },
     });
