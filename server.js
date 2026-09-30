@@ -45,18 +45,18 @@ function send(res, status, body, type = 'application/json') {
   res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
 }
 
-function readBody(req) {
+function readBody(req, { raw = false, limit = MAX_BODY } = {}) {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
     req.on('data', (c) => {
       size += c.length;
-      if (size > MAX_BODY) {
+      if (size > limit) {
         reject(new Error('Body too large'));
         req.destroy();
       } else chunks.push(c);
     });
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('end', () => resolve(raw ? Buffer.concat(chunks) : Buffer.concat(chunks).toString('utf8')));
     req.on('error', reject);
   });
 }
@@ -155,6 +155,34 @@ function probeKiro() {
   });
 }
 
+// ---- File conversion helpers (macOS built-ins: textutil for old Word/RTF/ODT, sips for HEIC/TIFF photos) ----
+const os = require('os');
+const TEXTUTIL_EXT = new Set(['.doc', '.dot', '.docx', '.rtf', '.rtfd', '.odt', '.wordml', '.html', '.htm', '.webarchive', '.txt']);
+const SIPS_EXT = new Set(['.heic', '.heif', '.tif', '.tiff', '.bmp', '.gif', '.png', '.jpg', '.jpeg', '.webp', '.avif', '.psd', '.jp2']);
+const execP = (cmd, args) => new Promise((resolve, reject) =>
+  execFile(cmd, args, { timeout: 60_000, maxBuffer: 30 * 1024 * 1024, windowsHide: true }, (err, stdout, stderr) =>
+    err ? reject(new Error((stderr || err.message).toString().trim().split('\n').pop())) : resolve(stdout)));
+
+async function convertFile(buf, name, to) {
+  const ext = (path.extname(String(name)).toLowerCase().match(/^\.[a-z0-9]{1,8}$/) || ['.bin'])[0];
+  const onMac = process.platform === 'darwin';
+  const unsupported = (msg) => Object.assign(new Error(msg), { status: 415 });
+  if (to === 'text' && !TEXTUTIL_EXT.has(ext)) throw unsupported(`can’t convert ${ext} files to text`);
+  if (to === 'jpeg' && !SIPS_EXT.has(ext)) throw unsupported(`can’t convert ${ext} files to an image`);
+  if (!onMac) throw unsupported(to === 'text' ? 'converting this file needs macOS' : 'converting this image type needs macOS');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'orbit-'));
+  try {
+    const input = path.join(dir, 'input' + ext);
+    fs.writeFileSync(input, buf);
+    if (to === 'text') return { text: (await execP('/usr/bin/textutil', ['-convert', 'txt', '-stdout', input])).toString('utf8') };
+    const out = path.join(dir, 'out.jpg');
+    await execP('/usr/bin/sips', ['-s', 'format', 'jpeg', '-Z', '3000', input, '--out', out]);
+    return { jpeg: fs.readFileSync(out) };
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 function serveStatic(req, res, urlPath) {
   let rel = decodeURIComponent(urlPath);
   if (rel === '/' || rel === '/callback') rel = '/index.html';
@@ -191,6 +219,17 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/jobs/search' && req.method === 'POST') {
       const filters = JSON.parse((await readBody(req)) || '{}');
       return send(res, 200, await jobs.search(filters));
+    }
+    if (url.pathname === '/api/convert' && req.method === 'POST') {
+      const to = url.searchParams.get('to');
+      if (!['text', 'jpeg'].includes(to)) return send(res, 400, { error: 'to must be text or jpeg' });
+      try {
+        const buf = await readBody(req, { raw: true, limit: 40 * 1024 * 1024 });
+        const out = await convertFile(buf, url.searchParams.get('name') || '', to);
+        return out.jpeg ? send(res, 200, out.jpeg, 'image/jpeg') : send(res, 200, out);
+      } catch (e) {
+        return send(res, e.status || 422, { error: e.message });
+      }
     }
     if (url.pathname === '/api/job-text' && req.method === 'GET') {
       try {

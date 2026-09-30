@@ -44,39 +44,8 @@ export function modal(title, bodyHTML, { onMount, wide } = {}) {
   return close;
 }
 
-// Read txt/md/pdf files into plain text. PDF uses pdf.js from a CDN (loaded on demand).
-let pdfjs;
-export async function readFileText(file) {
-  if (/\.pdf$/i.test(file.name) || file.type === 'application/pdf') {
-    if (!pdfjs) {
-      pdfjs = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs');
-      pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
-    }
-    const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
-    const pages = [];
-    for (let i = 1; i <= doc.numPages; i++) {
-      const content = await (await doc.getPage(i)).getTextContent();
-      // Rebuild lines using y-positions so dates stay on the same line as their items.
-      let lastY = null;
-      let line = '';
-      const lines = [];
-      for (const it of content.items) {
-        const y = Math.round(it.transform[5]);
-        if (lastY !== null && Math.abs(y - lastY) > 2) {
-          lines.push(line);
-          line = '';
-        }
-        line += (line && !line.endsWith(' ') ? ' ' : '') + it.str;
-        lastY = y;
-      }
-      lines.push(line);
-      pages.push(lines.join('\n'));
-    }
-    return pages.join('\n\n');
-  }
-  if (/\.docx$/i.test(file.name)) throw new Error('.docx is not supported yet. Export it as PDF or paste the text instead.');
-  return file.text();
-}
+// File reading lives in fileread.js (pdf, word, powerpoint, excel, images via OCR, …)
+export { readFileText, readFilesText, enableImagePaste, ACCEPT } from './fileread.js';
 
 export function spinner(label = 'Thinking…') {
   return `<div class="thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span> ${esc(label)}</div>`;

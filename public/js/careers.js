@@ -2,7 +2,7 @@
 import { store, addEvents } from './store.js';
 import { aiEnabled, ask } from './ai.js';
 import { esc, md, uid, todayISO, fmtDate, extractJSON } from './util.js';
-import { toast, readFileText, spinner, modal } from './ui.js';
+import { toast, readFileText, enableImagePaste, ACCEPT, spinner, modal } from './ui.js';
 
 const car = () => store.get().careers;
 const updCar = (fn) => store.update((s) => fn(s.careers));
@@ -595,7 +595,7 @@ function drawProfile(el, redraw) {
     <div class="grid dash">
       <div class="card stack" style="gap:14px">
         <h3>default resume <span>${c.resume ? `${c.resume.split(/\s+/).length} words` : 'empty'}</span></h3>
-        <label class="drop" id="r-drop" style="padding:22px"><input type="file" id="r-file" accept=".pdf,.txt,.md" hidden><div class="big" style="font-size:30px">your resume.</div><span class="muted small">drop a pdf or click to upload · or paste below</span></label>
+        <label class="drop" id="r-drop" style="padding:22px"><input type="file" id="r-file" accept="${ACCEPT}" hidden><div class="big" style="font-size:30px">your resume.</div><span class="muted small">drop a pdf, word doc, pages file or even a photo · or paste below</span></label>
         <textarea id="r-text" style="min-height:340px" placeholder="paste your current resume here">${esc(c.resume)}</textarea>
         <div class="row spread"><span class="small muted">everything stays in this browser.</span><div class="row">${aiEnabled() ? '<button class="btn ghost sm" id="r-fill">fill profile from resume</button>' : ''}<button class="btn sm" id="r-save">save resume</button></div></div>
       </div>
@@ -620,9 +620,16 @@ function drawProfile(el, redraw) {
   const drop = $('#r-drop');
   const load = async (file) => {
     if (!file) return;
-    try { $('#r-text').value = await readFileText(file); toast(`loaded ${file.name}. hit save`); } catch (e) { toast(e.message); }
+    const ta = $('#r-text');
+    try {
+      ta.value = ''; ta.placeholder = 'reading…';
+      ta.value = await readFileText(file, { onProgress: (m) => (ta.placeholder = m) });
+      toast(`loaded ${file.name}. hit save`);
+    } catch (e) { toast(e.message, { timeout: 8000 }); }
+    ta.placeholder = 'paste your current resume here';
   };
   $('#r-file').onchange = (e) => load(e.target.files[0]);
+  enableImagePaste($('#r-text'), { onProgress: (m) => ($('#r-text').placeholder = m), onDone: () => toast('read your screenshot'), onError: (e) => toast(e.message) });
   ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
   ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
   drop.addEventListener('drop', (e) => load(e.dataTransfer.files[0]));

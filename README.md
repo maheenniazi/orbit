@@ -33,7 +33,7 @@ Kiro runs as the `study-os` agent in `kiro-agent/`, which has **no tools**, so i
 
 ## Features
 
-- **Syllabus import:** accepts PDF, TXT or pasted text. Exams, quizzes, deadlines, readings, labs and no-class days go straight onto the calendar, and you can undo the import. Without an AI key, a built-in date parser handles formats like `Oct 14`, `10/14`, `14th November` and `2026-10-14`, and picks up times.
+- **Syllabus import:** accepts almost any file: PDF (scanned PDFs too), Word (.docx, and .doc on Mac), PowerPoint, Excel, OpenDocument, RTF, HTML, CSV, text, photos and screenshots (PNG, JPG, HEIC…, read with OCR), and Pages/Keynote files that include a preview. You can drop several files at once (e.g. a photo of each page) or paste a screenshot straight into the text box. The same file support works for notes and your resume. Exams, quizzes, deadlines, readings, labs and no-class days go straight onto the calendar, and you can undo the import. Without an AI key, a built-in date parser handles formats like `Oct 14`, `10/14`, `14th November` and `2026-10-14`, and picks up times.
 - **Auto study plans:** each exam gets six sessions scheduled at 10, 7, 5, 3, 2 and 1 days out, each with its own goal.
 - **Focus phases:** these change automatically as the next exam approaches: drift, then rising (14 days), gravity (7), eclipse (3) and liftoff (exam day). Each phase changes the accent color (eclipse switches to the night theme), the pomodoro length and the playlist. You can override the mode by hand or turn on Zen to hide the sidebar.
 - **Calendar:** month view, colors per course, course filters, quick add (`bio quiz fri 2pm`), and `.ics` export to Google or Apple Calendar.
@@ -49,11 +49,16 @@ Kiro runs as the `study-os` agent in `kiro-agent/`, which has **no tools**, so i
 
 All data lives in the browser's localStorage. You can export and import a backup in Settings.
 
+## File support
+
+Everything is read in your browser except two cases that use tools built into macOS: `textutil` for old `.doc` files and `sips` for HEIC/TIFF photos in browsers that can't open them. PDF reading (pdf.js) and photo OCR (Tesseract) load from a CDN the first time you use them, so you need internet for that.
+
 ## Code map
 
 ```
 server.js            static server + /api/ai proxy (Anthropic/OpenAI) + /api/status
 public/js/app.js     router, theme, focus palette, sidebar widgets
+  fileread.js        reads pdf, office, images (OCR) and more into text
   syllabus.js        offline parser, AI parser, quick-add parser, import view
   focus.js           mode logic, study-plan generator, pomodoro, focus view
   calendar.js  chat.js  notes.js  dashboard.js  settings.js  spotify.js

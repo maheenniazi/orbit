@@ -2,7 +2,7 @@
 import { store, getCourse, courseColor } from './store.js';
 import { aiEnabled, ask, getStatus } from './ai.js';
 import { esc, md, uid, fmtDate, todayISO } from './util.js';
-import { modal, toast, readFileText, spinner } from './ui.js';
+import { modal, toast, readFilesText, enableImagePaste, ACCEPT, spinner } from './ui.js';
 import { askAbout } from './chat.js';
 
 const STYLES = {
@@ -147,7 +147,7 @@ export function render(el) {
   function openGenerator() {
     const courses = store.get().courses;
     modal('generate notes', `
-      <label class="drop" id="g-drop" style="padding:18px"><input type="file" id="g-file" accept=".pdf,.txt,.md" hidden><b>upload slides or a reading</b><span class="muted small">pdf, txt · or paste below</span></label>
+      <label class="drop" id="g-drop" style="padding:18px"><input type="file" id="g-file" accept="${ACCEPT}" multiple hidden><b>upload slides, readings or photos</b><span class="muted small">pdf, powerpoint, word, photos of the whiteboard… · or paste below (screenshots too)</span></label>
       <textarea id="g-text" placeholder="Paste lecture transcript, slides text, or reading…" style="min-height:180px"></textarea>
       <div class="row">
         <label class="field">Title<input id="g-title" placeholder="e.g. Lecture 5: Memory"></label>
@@ -163,14 +163,21 @@ export function render(el) {
         const $ = (q) => body.querySelector(q);
         let style = 'outline';
         body.querySelectorAll('[data-s]').forEach((b) => (b.onclick = () => { style = b.dataset.s; body.querySelectorAll('[data-s]').forEach((x) => x.classList.toggle('on', x === b)); }));
-        $('#g-file').onchange = async (e) => {
-          const f = e.target.files[0];
-          if (!f) return;
+        const gStatus = (m) => ($('#g-status').innerHTML = spinner(m));
+        const loadFiles = async (files) => {
+          if (!files?.length) return;
           try {
-            $('#g-text').value = await readFileText(f);
-            if (!$('#g-title').value) $('#g-title').value = f.name.replace(/\.[^.]+$/, '');
-          } catch (err) { toast(err.message); }
+            $('#g-text').value = await readFilesText(files, { onProgress: gStatus });
+            if (!$('#g-title').value) $('#g-title').value = files[0].name.replace(/\.[^.]+$/, '');
+          } catch (err) { toast(err.message, { timeout: 8000 }); }
+          $('#g-status').innerHTML = '';
         };
+        $('#g-file').onchange = (e) => loadFiles(e.target.files);
+        const gDrop = $('#g-drop');
+        ['dragenter', 'dragover'].forEach((ev) => gDrop.addEventListener(ev, (e) => { e.preventDefault(); gDrop.classList.add('over'); }));
+        ['dragleave', 'drop'].forEach((ev) => gDrop.addEventListener(ev, (e) => { e.preventDefault(); gDrop.classList.remove('over'); }));
+        gDrop.addEventListener('drop', (e) => loadFiles(e.dataTransfer.files));
+        enableImagePaste($('#g-text'), { onProgress: gStatus, onDone: () => ($('#g-status').innerHTML = ''), onError: (e) => { $('#g-status').innerHTML = ''; toast(e.message); } });
         $('#g-go').onclick = async () => {
           const text = $('#g-text').value.trim();
           if (text.length < 80) return toast('Add a bit more source material (at least a paragraph)');

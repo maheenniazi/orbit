@@ -2,7 +2,7 @@
 import { store, addEvents, ensureCourse, removeEvents, courseColor, getCourse } from './store.js';
 import { aiEnabled, ask } from './ai.js';
 import { esc, toISO, todayISO, addDays, fmtDate, TYPE_META, extractJSON, fromISO, MONTHS } from './util.js';
-import { toast, readFileText, spinner } from './ui.js';
+import { toast, readFilesText, enableImagePaste, ACCEPT, spinner } from './ui.js';
 import { syncStudyPlans } from './focus.js';
 
 // ---------- Local (offline) parser ----------
@@ -84,6 +84,17 @@ function cleanTitle(line, strip) {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
+// Table rows from Word/Excel/PDF look like "5 | Oct 21 | Midterm Exam | 25%".
+// Drop cells that are just a week number, lecture number or grade weight so they don't end up in the title.
+function tableAware(line) {
+  if (!line.includes('|')) return line;
+  return line
+    .split('|')
+    .map((c) => c.trim())
+    .filter((c) => c && !/^(week|wk|lecture|lec|class|session|unit|module)?\s*#?\d{1,3}(\.\d+)?\s*%?$/i.test(c))
+    .join('  ');
+}
+
 export function detectCourse(text) {
   const head = text.split('\n').slice(0, 25);
   for (const line of head) {
@@ -110,7 +121,7 @@ export function parseLocal(text) {
     const type = classify(line);
     // Skip generic metadata lines (office hours, "last updated", etc.)
     if (/office hours|updated|revised|copyright|printed/i.test(line)) continue;
-    const title = cleanTitle(line, [d.match, tm?.match]) || TYPE_META[type].label;
+    const title = cleanTitle(tableAware(line), [d.match, tm?.match]) || TYPE_META[type].label;
     const key = `${d.iso}|${title.toLowerCase()}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -228,10 +239,10 @@ export function render(el) {
       <div class="stack">
         <div class="card">
           <label class="drop" id="drop">
-            <input type="file" id="file" accept=".pdf,.txt,.md,text/plain,application/pdf" hidden>
-            <div class="big">drop it here.</div><b>your syllabus, pdf or text</b><span class="muted small">or click to browse · pdf, txt, md</span>
+            <input type="file" id="file" accept="${ACCEPT}" multiple hidden>
+            <div class="big">drop it here.</div><b>your syllabus, in any format</b><span class="muted small">pdf, word, powerpoint, excel, photos or screenshots · several pages at once is fine</span>
           </label>
-          <div class="row" style="margin:14px 0 8px"><span class="hand">…or paste it</span><span style="flex:1"></span><button class="btn ghost sm" id="sample">try a sample syllabus</button></div>
+          <div class="row" style="margin:14px 0 8px"><span class="hand">…or paste it (screenshots too)</span><span style="flex:1"></span><button class="btn ghost sm" id="sample">try a sample syllabus</button></div>
           <textarea id="text" placeholder="Paste syllabus text here" style="min-height:200px"></textarea>
           <div class="row" style="margin-top:12px">
             <label class="field">Course name (optional)<input id="cname" placeholder="Auto-detected"></label>
@@ -248,22 +259,30 @@ export function render(el) {
 
   const $ = (s) => el.querySelector(s);
   const drop = $('#drop');
-  const loadFile = async (file) => {
-    if (!file) return;
-    $('#text').value = 'Reading file…';
+  const status = (m) => { $('#text').value = ''; $('#text').placeholder = m; };
+  const loadFiles = async (files) => {
+    if (!files?.length) return;
+    const ta = $('#text');
+    ta.disabled = true;
+    status('reading…');
     try {
-      $('#text').value = await readFileText(file);
-      if (!$('#text').value.trim()) throw new Error('No text found. Scanned PDFs need OCR first.');
-      toast(`Loaded ${file.name}`);
+      const text = await readFilesText(files, { onProgress: status });
+      if (!text.trim()) throw new Error('No text found in that file.');
+      ta.value = text;
+      toast(files.length > 1 ? `read ${files.length} files` : `loaded ${files[0].name}`);
     } catch (e) {
-      $('#text').value = '';
-      toast(e.message);
+      ta.value = '';
+      toast(e.message, { timeout: 8000 });
+    } finally {
+      ta.disabled = false;
+      ta.placeholder = 'Paste syllabus text here';
     }
   };
-  $('#file').onchange = (e) => loadFile(e.target.files[0]);
+  $('#file').onchange = (e) => loadFiles(e.target.files);
+  enableImagePaste($('#text'), { onProgress: (m) => ($('#text').placeholder = m), onDone: () => toast('read your screenshot'), onError: (e) => toast(e.message) });
   ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
   ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
-  drop.addEventListener('drop', (e) => loadFile(e.dataTransfer.files[0]));
+  drop.addEventListener('drop', (e) => loadFiles(e.dataTransfer.files));
   $('#sample').onclick = () => ($('#text').value = sampleSyllabus());
 
   $('#go').onclick = async () => {
