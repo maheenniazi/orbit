@@ -24,6 +24,7 @@ export function render(el) {
           <h3>Automation</h3>
           <label class="check"><input type="checkbox" id="autoFocus" ${s.settings.autoFocus ? 'checked' : ''}> Auto-escalate focus mode as exams approach</label>
           <label class="check"><input type="checkbox" id="autoPlan" ${s.settings.autoStudyPlan ? 'checked' : ''}> Auto-schedule study sessions before exams</label>
+          <label class="check"><input type="checkbox" id="autoPrep" ${s.settings.autoPrep !== false ? 'checked' : ''}> make a cheat sheet + practice test from my notes <input type="number" id="prepDays" min="1" max="21" value="${s.settings.prepDays ?? 5}" style="width:58px;padding:4px 6px;display:inline-block"> days before each exam</label>
           <p class="small muted" style="margin:0">drift → rising (14 days out) → gravity (7) → eclipse (3) → liftoff (exam day).</p>
         </div>
         <div class="card stack">
@@ -67,6 +68,8 @@ export function render(el) {
     $('#name').onchange = (e) => store.update((x) => (x.settings.name = e.target.value.trim()));
     el.querySelectorAll('[data-t]').forEach((b) => (b.onclick = () => store.update((x) => (x.settings.theme = b.dataset.t))));
     $('#autoFocus').onchange = (e) => store.update((x) => (x.settings.autoFocus = e.target.checked));
+    $('#autoPrep').onchange = (e) => store.update((x) => (x.settings.autoPrep = e.target.checked));
+    $('#prepDays').onchange = (e) => store.update((x) => (x.settings.prepDays = Math.max(1, Math.min(21, Number(e.target.value) || 5))));
     $('#autoPlan').onchange = (e) => store.update((x) => (x.settings.autoStudyPlan = e.target.checked));
     $('#sp-on')?.addEventListener('click', connect);
     $('#sp-off')?.addEventListener('click', () => { disconnect(); draw(); });

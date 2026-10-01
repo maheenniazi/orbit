@@ -13,6 +13,7 @@ import * as focus from './focus.js';
 import * as settings from './settings.js';
 import * as careers from './careers.js';
 import * as degree from './degree.js';
+import { autoPrep } from './examprep.js';
 
 const routes = { dashboard, calendar, import: syllabus, notes, chat, focus, degree, careers, settings };
 const viewEl = document.getElementById('view');
@@ -69,8 +70,10 @@ async function boot() {
   onTimer(paintMiniTimer);
   window.addEventListener('hashchange', () => { route(); paintMiniTimer(getTimer()); });
   // Re-evaluate focus mode at midnight / when returning to the tab
-  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && applyChrome());
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { applyChrome(); autoPrep(); } });
   route();
+  setTimeout(autoPrep, 1500); // build exam prep for exams coming up (after the page is ready)
+  setInterval(autoPrep, 60 * 60 * 1000);
 }
 
 boot();

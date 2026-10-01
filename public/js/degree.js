@@ -148,8 +148,9 @@ function requirementsCard(d, s) {
     <details class="req-setup" ${reqs.length ? '' : 'open'}>
       <summary>${reqs.length ? 'your program & sources' : 'set up your program'}</summary>
       <div class="stack" style="gap:10px;margin-top:12px">
-        <label class="field">university<input id="d-school" list="schools" value="${esc(d.school)}" placeholder="University of Toronto"><datalist id="schools">${SCHOOLS.map((x) => `<option value="${esc(x.name)}">`).join('')}</datalist></label>
-        <label class="field">program / major<input id="d-program" value="${esc(d.program)}" placeholder="Honours BSc, Psychology Specialist"></label>
+        <label class="field">university<div class="combo"><input id="d-school" value="${esc(d.school)}" placeholder="University of Toronto" autocomplete="off" role="combobox" aria-expanded="false"><div class="combo-list" id="school-list" role="listbox" hidden></div></div></label>
+        <label class="field">program / major<input id="d-program" value="${esc(d.program)}" placeholder="Honours BSc, Computer Science Major"></label>
+        <label class="field">stream / option / concentration (if you know it)<input id="d-stream" value="${esc(d.stream || '')}" placeholder="e.g. CMP1, co-op, AI focus. leave blank and it’ll ask"></label>
         <label class="field">links to your program requirements (one per line)<textarea id="d-links" style="min-height:74px" placeholder="https://artsci.calendar.utoronto.ca/program/…&#10;add your minor’s page too">${esc(d.links)}</textarea></label>
         <details><summary class="small muted" style="cursor:pointer">or paste / upload the requirements</summary>
           <label class="drop" id="req-drop" style="padding:14px;margin-top:8px"><input type="file" id="req-file" accept="${ACCEPT}" multiple hidden><b style="font-size:18px">drop a pdf or screenshot</b><span class="muted small">e.g. the calendar page saved as pdf, or your degree audit</span></label>
@@ -171,6 +172,8 @@ function requirementsCard(d, s) {
       </div>
     </details>
 
+    ${streamPicker(d)}
+    ${questionsBox(d)}
     ${reqs.length ? `<div class="req-list">${reqs.map((r) => reqRow(r, res[r.id], d, stateLabel)).join('')}</div>` : ''}
     <div class="row spread" style="margin-top:14px">
       <button class="btn ghost sm" id="req-add">+ add requirement</button>
@@ -178,6 +181,40 @@ function requirementsCard(d, s) {
     </div>
     <p class="small faint" style="margin:14px 0 0">a planning helper, not an official audit. double-check with your registrar or your school’s degree audit tool before you enrol.</p>
   </div>`;
+}
+
+function streamPicker(d) {
+  const streams = d.streams || [];
+  if (streams.length < 2) return '';
+  const chosen = streams.find((x) => x.name === d.stream);
+  return `<div class="ask-card ${chosen ? 'answered' : ''}" id="stream-card">
+    <div class="ask-q">${chosen ? 'your stream' : `your program has ${streams.length} streams with different requirements. which one are you in?`}</div>
+    <div class="ask-opts">${streams.map((x, i) => `<button class="ask-opt ${x.name === d.stream ? 'on' : ''}" data-stream="${i}"><b>${esc(x.name)}</b>${x.description ? `<small>${esc(x.description)}</small>` : ''}</button>`).join('')}</div>
+    ${chosen ? '' : '<p class="small muted" style="margin:8px 0 0">not sure? check your acceptance letter, ACORN/your student portal, or ask your program advisor.</p>'}
+  </div>`;
+}
+
+function questionsBox(d) {
+  const qs = (d.questions || []).filter((q) => q && q.question);
+  if (!qs.length) return '';
+  const answers = d.answers || {};
+  const open = qs.filter((q) => !answers[q.question]);
+  return `<div class="ask-card ${open.length ? '' : 'answered'}" id="q-card">
+    <div class="ask-q">${open.length ? 'a few more questions so the checklist matches you exactly' : 'your answers'}</div>
+    ${qs.map((q, i) => `<div class="ask-item">
+      <div class="small" style="margin-bottom:6px">${esc(q.question)}</div>
+      <div class="ask-opts">${(q.options?.length ? q.options : ['yes', 'no']).map((o) => `<button class="ask-opt sm ${answers[q.question] === o ? 'on' : ''}" data-q="${i}" data-a="${esc(o)}">${esc(o)}</button>`).join('')}</div>
+    </div>`).join('')}
+    ${!open.length && d.answersChanged ? '<button class="btn sm" id="q-recheck" style="margin-top:10px">update my requirements</button>' : ''}
+  </div>`;
+}
+
+function applyStream(dd, stream) {
+  const manualDone = new Map(dd.requirements.filter((r) => r.type === 'manual').map((r) => [r.name.toLowerCase(), r.done]));
+  const reqs = (stream.requirements || []).map((r) => ({ ...r, id: uid(), done: r.type === 'manual' ? Boolean(manualDone.get(r.name.toLowerCase())) : false }));
+  dd.requirements = [...reqs, ...dd.requirements.filter((r) => r.source === 'manual')];
+  dd.stream = stream.name;
+  if (stream.totalCredits) dd.totalCredits = Number(stream.totalCredits);
 }
 
 function reqRow(r, x, d, labels) {
@@ -283,12 +320,31 @@ function wire(el, draw) {
       const changedSchool = school && school !== d.school;
       d.school = school;
       d.program = $('#d-program').value.trim();
+      const typed = $('#d-stream').value.trim();
+      if (typed !== (d.stream || '')) {
+        d.stream = typed;
+        const hit = (d.streams || []).find((x) => matchStream(x.name, typed));
+        if (hit) applyStream(d, hit);
+      }
       d.links = $('#d-links').value.trim();
       d.totalCredits = Number($('#d-total').value) || (changedSchool && p && !d.totalCredits ? p.total : d.totalCredits || 0);
       d.defaultCredit = $('#d-credit').value !== '' ? Number($('#d-credit').value) : p ? p.credit : d.defaultCredit;
       d.unit = $('#d-unit').value.trim() || (p ? p.unit : d.unit || 'credits');
     });
   };
+  mountCombo($('#d-school'), $('#school-list'), SCHOOLS.map((x) => x.name), () => $('#d-school').onchange());
+  el.querySelectorAll('[data-stream]').forEach((b) => (b.onclick = () => {
+    const st = deg().streams[+b.dataset.stream];
+    upd((d) => applyStream(d, st));
+    toast(`using the ${st.name} requirements`);
+    draw();
+  }));
+  el.querySelectorAll('[data-q]').forEach((b) => (b.onclick = () => {
+    const q = deg().questions[+b.dataset.q];
+    upd((d) => { d.answers = { ...(d.answers || {}), [q.question]: b.dataset.a }; d.answersChanged = true; });
+    draw();
+  }));
+  $('#q-recheck')?.addEventListener('click', () => { upd((d) => (d.answersChanged = false)); checkRequirements($('#d-paste')?.value.trim() || '', draw); });
   $('#d-school').onchange = () => {
     const p = schoolPreset($('#d-school').value);
     if (!p) return;
@@ -387,6 +443,43 @@ function editRequirement(r, draw) {
   });
 }
 
+// ---------------- combobox (styled replacement for <datalist>) ----------------
+function mountCombo(input, list, options, onPick) {
+  let active = -1;
+  const show = () => {
+    const q = input.value.trim().toLowerCase();
+    const items = options.filter((o) => !q || o.toLowerCase().includes(q) || (schoolPreset(q)?.name === o)).slice(0, 8);
+    if (!items.length || (items.length === 1 && items[0] === input.value)) return hide();
+    active = Math.min(active, items.length - 1);
+    list.innerHTML = items.map((o, i) => `<button type="button" class="combo-opt ${i === active ? 'on' : ''}" data-v="${esc(o)}" role="option">${esc(o)}</button>`).join('');
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+    list.querySelectorAll('[data-v]').forEach((b) => (b.onmousedown = (e) => { e.preventDefault(); pick(b.dataset.v); }));
+  };
+  const hide = () => { list.hidden = true; active = -1; input.setAttribute('aria-expanded', 'false'); };
+  const pick = (v) => { input.value = v; hide(); onPick?.(v); };
+  input.addEventListener('focus', show);
+  input.addEventListener('input', () => { active = -1; show(); });
+  input.addEventListener('blur', () => setTimeout(hide, 120));
+  input.addEventListener('keydown', (e) => {
+    const opts = [...list.querySelectorAll('[data-v]')];
+    if (list.hidden || !opts.length) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      active = (active + (e.key === 'ArrowDown' ? 1 : -1) + opts.length) % opts.length;
+      opts.forEach((o, i) => o.classList.toggle('on', i === active));
+    } else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); pick(opts[active].dataset.v); }
+    else if (e.key === 'Escape') hide();
+  });
+}
+
+const normStream = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+function matchStream(name, typed) {
+  const a = normStream(name), b = normStream(typed);
+  if (!a || !b) return false;
+  return a === b || a.includes(b) || b.includes(a) || a.split(' ').some((w) => w.length > 2 && b.split(' ').includes(w) && /\d/.test(w));
+}
+
 // ---------------- automatic requirement check ----------------
 async function checkRequirements(pasted, draw) {
   const d = deg();
@@ -417,27 +510,32 @@ async function checkRequirements(pasted, draw) {
   busy = 'working out your requirements…';
   draw();
   const sampleCodes = d.years.flatMap((y) => y.courses.map((c) => c.code)).slice(0, 25);
+  const answers = Object.entries(d.answers || {}).map(([q, a]) => `- ${q} → ${a}`).join('\n');
+  const reqSchema = '{"name":"short readable name","type":"courses|choose|total|manual","min":number|null,"unit":"credits|courses","courses":["CODE"],"note":"","overlap":false}';
   try {
     const reply = await ask({
       system: `You turn Canadian university program requirements into a precise checklist. Use ONLY the source text; never invent requirements, course codes or numbers.
 Return ONLY JSON:
 {"school":"","program":"","totalCredits":number|null,"unit":"credits|units|courses|credit hours","defaultCredit":number|null,
- "requirements":[{"name":"short readable name","type":"courses|choose|total|manual","min":number|null,"unit":"credits|courses","courses":["CODE"],"note":"","overlap":false}],
+ "streams":[{"name":"short stream name exactly as the calendar calls it","description":"one line: who this stream is for / how you get in","totalCredits":number|null,"requirements":[${reqSchema}]}],
+ "questions":[{"question":"","options":["",""]}],
  "warnings":["anything ambiguous the student should confirm"]}
-Rules:
-- "courses": specific required courses. List each; alternatives in one entry joined with " | " (e.g. "PSY201H1 | STA220H1"). min = how many entries are required (null = all).
-- "choose": "X credits/courses from a list or level". courses = codes or patterns: X is a digit wildcard ("PSY3XX" = any 300-level PSY), a bare subject ("PSY") = any course in that subject, "*4XX" = any 400-level course. min = the amount, unit = credits or courses.
-- "total": the total needed for the degree (also set totalCredits).
-- "manual": anything that can't be checked from a course list (minimum GPA/CGPA, breadth/distribution categories that aren't defined by course codes, residency, experiential learning, language requirements). Put the detail in note.
-- Set overlap true for breadth/distribution-type requirements that may be satisfied by courses also used elsewhere, when the text allows it.
-- Write course codes exactly the way the calendar does. The student's own codes look like: ${sampleCodes.join(', ') || '(none yet)'}.
-- defaultCredit = the credit value of a one-term (half) course at this school; unit = what the school calls credits.
-- Include requirements for every program named (e.g. major AND minor), prefixing names with the program ("Major: …", "Minor: …").`,
-      messages: [{ role: 'user', content: `School: ${d.school || 'unknown'}\nProgram(s): ${d.program || 'see sources'}\n\n${texts.join('\n\n---\n\n').slice(0, 70000)}` }],
-      maxTokens: 6000,
+STREAMS: Many programs have different requirement sets depending on stream, admission category, option, concentration, focus, co-op vs regular, specialist vs major, honours vs general, or year of entry (e.g. UTM Computer Science has a CMP1 admission category and other streams with different first-year requirements). If the source describes more than one such set, return ONE stream per set, each with its COMPLETE requirements (repeat shared requirements in every stream). If there is only one set, return exactly one stream.
+QUESTIONS: Only for choices that change requirements but are NOT separate streams in the text (e.g. "Are you in co-op?", "Which minor are you pairing this with?", "Did you start before Fall 2024?"). Max 4, each with 2-5 short options. Don't ask anything the student already answered. Return [] if none.
+REQUIREMENT TYPES:
+- "courses": specific required courses. Alternatives in one entry joined with " | " (e.g. "PSY201H1 | STA220H1"). min = how many entries are required (null = all).
+- "choose": "X credits/courses from a list or level". courses = codes or patterns: X is a digit wildcard ("CSC3XX" = any 300-level CSC), a bare subject ("CSC") = any course in that subject, "*4XX" = any 400-level course. min = the amount, unit = credits or courses.
+- "total": total needed for the degree (also set totalCredits).
+- "manual": things that can't be checked from course codes (minimum GPA/CGPA, breadth/distribution categories not defined by codes, residency, experiential learning, program admission/POSt requirements). Put the detail in note.
+- overlap true for breadth/distribution-type requirements that may use courses also counted elsewhere, when the text allows it.
+- Write course codes exactly as the calendar does. The student's codes look like: ${sampleCodes.join(', ') || '(none yet)'}.
+- defaultCredit = credit value of a one-term course at this school; unit = what the school calls credits.
+- Cover every program named (major AND minor), prefixing names ("Major: …", "Minor: …").`,
+      messages: [{ role: 'user', content: `School: ${d.school || 'unknown'}\nProgram(s): ${d.program || 'see sources'}\nStream the student says they're in: ${d.stream || '(not given)'}\n${answers ? `Student's answers:\n${answers}\n` : ''}\n${texts.join('\n\n---\n\n').slice(0, 70000)}` }],
+      maxTokens: 8000,
     });
     const data = extractJSON(reply);
-    const clean = (data.requirements || [])
+    const cleanReqs = (list) => (list || [])
       .filter((r) => r && ['courses', 'choose', 'total', 'manual'].includes(r.type))
       .map((r) => ({
         id: uid(), source: 'ai', done: false,
@@ -449,24 +547,38 @@ Rules:
         note: String(r.note || '').slice(0, 300),
         overlap: Boolean(r.overlap),
       }));
+    // older single-list replies still work
+    let streams = (data.streams || []).filter((x) => x && x.requirements?.length).map((x) => ({ name: String(x.name || 'stream').slice(0, 80), description: String(x.description || '').slice(0, 200), totalCredits: x.totalCredits || null, requirements: cleanReqs(x.requirements) }));
+    if (!streams.length && data.requirements) streams = [{ name: 'main', description: '', requirements: cleanReqs(data.requirements) }];
+    const questions = (data.questions || []).filter((q) => q?.question).slice(0, 4).map((q) => ({ question: String(q.question).slice(0, 200), options: (q.options || []).map(String).filter(Boolean).slice(0, 5) }));
+    let picked = null;
     upd((dd) => {
-      const oldDone = new Map(dd.requirements.filter((r) => r.type === 'manual').map((r) => [r.name.toLowerCase(), r.done]));
-      clean.forEach((r) => { if (r.type === 'manual' && oldDone.get(r.name.toLowerCase())) r.done = true; });
-      dd.requirements = [...clean, ...dd.requirements.filter((r) => r.source === 'manual')];
-      if (data.totalCredits && !dd.totalCredits) dd.totalCredits = Number(data.totalCredits);
-      if (data.totalCredits && dd.totalCredits !== Number(data.totalCredits)) dd.totalCredits = Number(data.totalCredits);
+      dd.streams = streams.length > 1 ? streams : [];
+      dd.questions = questions;
+      dd.answers = Object.fromEntries(Object.entries(dd.answers || {}).filter(([q]) => questions.some((x) => x.question === q)));
+      dd.answersChanged = false;
+      if (data.totalCredits) dd.totalCredits = Number(data.totalCredits);
       if (data.defaultCredit) dd.defaultCredit = Number(data.defaultCredit);
       if (data.unit) dd.unit = String(data.unit);
       if (!dd.school && data.school) dd.school = String(data.school);
       if (!dd.program && data.program) dd.program = String(data.program);
       dd.sources = sources;
       dd.checkedAt = Date.now();
+      picked = streams.length === 1 ? streams[0] : streams.find((x) => matchStream(x.name, dd.stream));
+      if (picked) applyStream(dd, streams.length === 1 && !dd.stream ? { ...picked, name: '' } : picked);
+      else { dd.requirements = dd.requirements.filter((r) => r.source === 'manual'); dd.stream = ''; }
     });
     busy = null;
     draw();
     const warn = [...errors, ...(data.warnings || [])];
     if (warn.length) showStatus(`<b>double-check:</b><ul style="margin:4px 0 0;padding-left:18px">${warn.map((w) => `<li>${esc(String(w))}</li>`).join('')}</ul>`, true);
-    toast(`found ${clean.length} requirement${clean.length === 1 ? '' : 's'}`);
+    if (streams.length > 1 && !picked) {
+      toast(`your program has ${streams.length} streams. pick yours`);
+      document.querySelector('#stream-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else if (questions.length && questions.some((q) => !deg().answers?.[q.question])) {
+      toast('answer a couple of questions to finish your checklist');
+      document.querySelector('#q-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else toast(`found ${deg().requirements.length} requirement${deg().requirements.length === 1 ? '' : 's'}`);
   } catch (e) {
     busy = null;
     draw();

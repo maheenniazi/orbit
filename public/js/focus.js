@@ -3,6 +3,7 @@ import { store, addEvents, courseColor, getCourse } from './store.js';
 import { EXAM_TYPES, todayISO, addDays, daysUntil, fmtDate, esc, pad, TYPE_META } from './util.js';
 import { toast } from './ui.js';
 import { renderSpotify } from './spotify.js';
+import { makePrep, prepFor, courseNotes } from './examprep.js';
 
 export const MODES = {
   chill: { key: 'chill', label: 'drift', work: 25, brk: 5, playlist: 'chill',
@@ -207,6 +208,9 @@ export function render(el) {
             <h3>next exam</h3>
             <div class="row spread"><div><div style="font-family:var(--serif);font-size:26px;line-height:1.1">${esc(f.exam.title)}</div><div class="muted small" style="margin-top:4px">${esc(getCourse(f.exam.courseId)?.name || '')} · ${fmtDate(f.exam.date, { weekday: 'long', month: 'long', day: 'numeric' }).toLowerCase()}</div></div>
             <div class="stat" style="color:${courseColor(f.exam.courseId)}">${f.days}<span class="small muted" style="font-family:var(--mono)"> days</span></div></div>
+            <div class="row" style="margin-top:14px">${prepFor(f.exam.id).length
+              ? `<button class="btn sm" data-open-prep="${prepFor(f.exam.id).find((n) => n.prep.kind === 'cheatsheet')?.id || prepFor(f.exam.id)[0].id}">open cheat sheet</button><button class="btn ghost sm" data-open-prep="${prepFor(f.exam.id).find((n) => n.prep.kind === 'practice')?.id || ''}">practice test</button>`
+              : courseNotes(f.exam.courseId).length ? '<button class="btn sm" id="make-prep">make cheat sheet + practice test</button>' : '<span class="small muted">add notes for this course and you’ll get a cheat sheet + practice test</span>'}</div>
           </div>` : ''}
           <div class="card">
             <h3>today</h3>
@@ -235,6 +239,8 @@ export function render(el) {
     el.querySelector('#auto')?.addEventListener('click', () => store.update((s) => (s.settings.focusOverride = null)));
     el.querySelectorAll('[data-done]').forEach((c) => (c.onchange = () =>
       store.update((s) => { const e = s.events.find((x) => x.id === c.dataset.done); if (e) e.done = c.checked; })));
+    el.querySelectorAll('[data-open-prep]').forEach((b) => (b.onclick = () => { sessionStorage.setItem('studyos:open-note', b.dataset.openPrep); location.hash = '#/notes'; }));
+    el.querySelector('#make-prep')?.addEventListener('click', async (e) => { e.target.disabled = true; e.target.textContent = 'making your prep…'; await makePrep(f.exam); draw(); });
     renderSpotify(el.querySelector('#spotify'), f.mode.playlist);
     paint(getTimer());
   };

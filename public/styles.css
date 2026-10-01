@@ -565,3 +565,43 @@ details summary::marker { color: var(--faint); }
 .req-actions .icon-btn { font-size: 11.5px; }
 
 .web-box { margin-top: 14px; padding: 10px 14px; border: 1px dashed var(--line-strong); border-radius: var(--r); }
+
+/* ============ combobox (university picker) ============ */
+.combo { position: relative; }
+.combo-list {
+  position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; max-height: 260px; overflow-y: auto; padding: 4px;
+  background: var(--card); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 18px 40px -22px rgba(0,0,0,.5);
+  animation: rise .15s var(--ease);
+}
+.combo-opt { display: block; width: 100%; text-align: left; font: 14px var(--sans); text-transform: none; letter-spacing: 0; color: var(--ink); background: none; border: none; border-radius: 7px; padding: 8px 10px; cursor: pointer; }
+.combo-opt:hover, .combo-opt.on { background: color-mix(in srgb, var(--butter) 34%, transparent); }
+.card:has(.combo-list:not([hidden])) { z-index: 8; }
+
+/* ============ follow-up questions (streams etc.) ============ */
+.ask-card { margin-top: 14px; padding: 14px 16px; border-radius: var(--r); background: color-mix(in srgb, var(--butter) 30%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.ask-card.answered { background: transparent; border-style: dashed; border-color: var(--line-strong); }
+.ask-q { font-family: var(--serif); font-size: 19px; line-height: 1.25; margin-bottom: 10px; }
+.ask-item + .ask-item { margin-top: 12px; }
+.ask-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.ask-opt { font: 13px var(--sans); text-align: left; background: var(--card); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 10px; padding: 9px 12px; cursor: pointer; max-width: 100%; }
+.ask-opt b { display: block; font-weight: 600; }
+.ask-opt small { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+.ask-opt:hover { border-color: var(--ink); }
+.ask-opt.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.ask-opt.on small { color: color-mix(in srgb, var(--paper) 70%, transparent); }
+.ask-opt.sm { padding: 6px 12px; border-radius: 99px; }
+
+/* ============ note folders ============ */
+.nfolder { border-bottom: 1px solid var(--line); padding: 2px 0; }
+.nfolder-head { display: flex; align-items: center; gap: 9px; width: 100%; background: none; border: none; color: var(--ink); cursor: pointer; padding: 10px 6px; font: 15px var(--serif); text-align: left; }
+.nfolder-head:hover { background: var(--card-2); border-radius: 8px; }
+.nf-name { flex: 1; font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nf-count { font: 10.5px var(--mono); color: var(--muted); }
+.nfolder .note-item { margin-left: 14px; }
+.nf-exam { margin: 0 6px 6px 22px; font-size: 12px; color: var(--accent); display: flex; flex-direction: column; gap: 2px; }
+.link-btn { background: none; border: none; padding: 0; color: var(--muted); font: 12px var(--sans); text-decoration: underline; cursor: pointer; text-align: left; }
+.link-btn:hover { color: var(--accent); }
+.nf-new { margin: 4px 0 10px 22px; }
+.note-item.prep { background: color-mix(in srgb, var(--butter) 22%, transparent); }
+.prep-tag { font: 9px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); white-space: nowrap; border: 1px solid currentColor; border-radius: 99px; padding: 1px 7px; }
+.move-sel { width: auto; padding: 3px 8px; font-size: 12px; border-radius: 99px; }

@@ -40,6 +40,10 @@ const defaults = () => ({
     links: '', // program requirement pages, one per line
     requirements: [], // {id, name, type: total|courses|choose|manual, min, unit: credits|courses, courses: [], note, overlap, done}
     years: [], // {id, label, open, courses: [{id, code, title, credits, term, grade, status: completed|in-progress|planned|failed|dropped}]}
+    stream: '', // chosen stream / admission category, e.g. "CMP1"
+    streams: [], // [{name, description, totalCredits, requirements}] when a program has several
+    questions: [], // [{question, options}] follow-ups that change requirements
+    answers: {},
     checkedAt: 0,
     sources: [], // where requirements came from
   },
@@ -50,6 +54,8 @@ const defaults = () => ({
     autoFocus: true,
     focusOverride: null, // null = automatic, or a mode key
     autoStudyPlan: true,
+    autoPrep: true, // make a cheat sheet + practice test before exams
+    prepDays: 5,
     playlists: DEFAULT_PLAYLISTS,
   },
 });
