@@ -57,6 +57,8 @@ Kiro runs as the `study-os` agent in `kiro-agent/`, which has **no tools**, so i
   - *Tailor:* paste a job link or description and get a tailored resume, CV or cover letter built only from your real experience, following Canadian conventions (Canadian spelling, no photo, age or SIN, and French if the posting is in French), plus notes on missing keywords. "Save as pdf" opens a clean print layout.
   - *Tracker:* saved roles move through saved, applied, interview, offer and rejected. Deadlines and follow-ups can go on your calendar.
 
+- **Home layout:** click **customize** on the home page to drag cards around, move them between columns or to the top, make them half or full width, or hide them. Your layout is saved.
+
 All data lives in the browser's localStorage. You can export and import a backup in Settings.
 
 ## File support

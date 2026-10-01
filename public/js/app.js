@@ -14,6 +14,7 @@ import * as settings from './settings.js';
 import * as careers from './careers.js';
 import * as degree from './degree.js';
 import { autoPrep } from './examprep.js';
+import { startSelects } from './cselect.js';
 
 const routes = { dashboard, calendar, import: syllabus, notes, chat, focus, degree, careers, settings };
 const viewEl = document.getElementById('view');
@@ -60,6 +61,7 @@ async function boot() {
     location.replace(location.href.replace('//localhost', '//127.0.0.1'));
     return;
   }
+  startSelects(); // themed dropdowns everywhere
   document.getElementById('brand-name').textContent = APP_NAME;
   document.getElementById('mini-timer').onclick = () => (location.hash = '#/focus');
   await loadStatus();
