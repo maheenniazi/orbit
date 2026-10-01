@@ -297,6 +297,14 @@ function drawFind(el, redraw) {
     saveFilters(nf); drawFind(el, redraw);
   }));
   $('#to-profile')?.addEventListener('click', () => { ui.tab = 'profile'; redraw(); });
+  $('#test-src')?.addEventListener('click', async (e) => {
+    e.target.textContent = 'testing… (can take up to a minute)';
+    try {
+      const r = await (await fetch('/api/jobs/test')).json();
+      $('#test-out').innerHTML = `<ul style="margin:8px 0 0;padding-left:18px;line-height:1.7">${Object.values(r).map((x) => `<li><b>${esc(x.label)}:</b> <span style="color:${x.ok ? 'inherit' : 'var(--accent)'}">${esc(x.message)}</span></li>`).join('')}</ul>`;
+    } catch (err) { $('#test-out').textContent = err.message; }
+    e.target.textContent = 'test again';
+  });
   $('#save-boards').onclick = () => { updCar((cc) => (cc.boards = $('#boards').value)); toast('sources saved'); };
 
   const run = async () => {
@@ -385,7 +393,9 @@ function webBox() {
     ['jooble', 'Jooble', 'JOOBLE_API_KEY', 'https://ca.jooble.org/api/about', 'another large aggregator (ca.jooble.org). free'],
   ].filter(([k]) => !w[k]?.ready);
   return `<div class="web-box small">
-    <b>whole-web search:</b> ${on.length ? `<span style="color:var(--accent)">on</span> · ${esc(on.join(', '))}` : '<span class="muted">off. connect a source below to search every company, big or small</span>'}
+    <div class="row spread"><span><b>whole-web search:</b> ${on.length ? `<span style="color:var(--accent)">on</span> · ${esc(on.join(', '))}` : '<span class="muted">off. connect a source below to search every company, big or small</span>'}</span>
+    ${on.length ? '<button class="link-btn" id="test-src">test my sources</button>' : ''}</div>
+    <div id="test-out"></div>
     ${setup.length ? `<details style="margin-top:6px" ${on.length ? '' : 'open'}><summary class="muted" style="cursor:pointer">${on.length ? 'add more sources' : 'how to turn it on'}</summary>
       <ul style="margin:6px 0 0;padding-left:18px;line-height:1.7">${setup.map(([, n, key, url, why]) => `<li><a href="${url}" target="_blank" rel="noopener">${n}</a>: ${why}. put <code>${key}</code> in <code>.env</code></li>`).join('')}</ul>
       <p class="faint" style="margin:6px 0 0">then restart the app. results from every source are merged and de-duplicated.</p></details>` : ''}

@@ -9,7 +9,7 @@ const envPath = path.join(__dirname, '.env');
 if (fs.existsSync(envPath)) {
   for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, '').trim();
   }
 }
 
@@ -122,6 +122,9 @@ const server = http.createServer(async (req, res) => {
       } catch (e) {
         return send(res, e.status || 502, { error: e.message });
       }
+    }
+    if (url.pathname === '/api/jobs/test' && req.method === 'GET') {
+      return send(res, 200, await require('./websearch').testSources());
     }
     if (url.pathname === '/api/jobs/search' && req.method === 'POST') {
       const filters = JSON.parse((await readBody(req)) || '{}');
