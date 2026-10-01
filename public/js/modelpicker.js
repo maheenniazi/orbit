@@ -37,6 +37,7 @@ export function mountModelPicker(host, { compact = false } = {}) {
     const btn = host.querySelector('.mp-btn');
     btn.onclick = (e) => { e.stopPropagation(); open = !open; query = ''; draw(); if (open) host.querySelector('.mp-search')?.focus(); };
     if (!open) return;
+    placeMenu(btn, host.querySelector('.mp-menu'));
     const search = host.querySelector('.mp-search');
     search.oninput = () => { query = search.value; const list = host.querySelector('.mp-list'); list.outerHTML = listHTML(getCatalog(), getModel(), query); wireList(); };
     search.onkeydown = (e) => {
@@ -55,17 +56,42 @@ export function mountModelPicker(host, { compact = false } = {}) {
 
   const wireList = () => host.querySelectorAll('[data-model]').forEach((b) => (b.onclick = () => choose(b.dataset.model)));
   const choose = (id) => {
+    open = false; // before setModel, which redraws
     setModel(id);
-    open = false;
     toast(`now using ${modelInfo(id).label}`);
   };
 
   const closeOnOutside = () => { if (open) { open = false; draw(); } };
   document.addEventListener('click', closeOnOutside);
+  const closeOnMove = (e) => { if (open && !host.querySelector('.mp-menu')?.contains(e.target)) { open = false; draw(); } };
+  window.addEventListener('resize', closeOnMove);
+  document.addEventListener('scroll', closeOnMove, true);
   const off = onModelChange(draw);
   loadModels().then(draw);
   draw();
-  return () => { document.removeEventListener('click', closeOnOutside); off(); };
+  return () => { document.removeEventListener('click', closeOnOutside); window.removeEventListener('resize', closeOnMove); document.removeEventListener('scroll', closeOnMove, true); off(); };
+}
+
+// Float the menu above everything (so pop-up windows and cards can't clip it),
+// opening downward if there's room, otherwise upward, and staying on screen.
+function placeMenu(btn, m) {
+  if (!m) return;
+  const r = btn.getBoundingClientRect();
+  const pad = 8;
+  const width = Math.min(330, window.innerWidth - pad * 2);
+  const below = window.innerHeight - r.bottom - pad;
+  const above = r.top - pad;
+  const up = below < 300 && above > below;
+  const maxH = Math.max(200, Math.min(440, (up ? above : below) - 6));
+  Object.assign(m.style, {
+    position: 'fixed',
+    width: `${width}px`,
+    maxHeight: `${maxH}px`,
+    left: `${Math.max(pad, Math.min(r.right - width, window.innerWidth - width - pad))}px`,
+    top: up ? 'auto' : `${r.bottom + 6}px`,
+    bottom: up ? `${window.innerHeight - r.top + 6}px` : 'auto',
+    right: 'auto',
+  });
 }
 
 function menu(cat, currentId) {

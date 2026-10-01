@@ -662,3 +662,5 @@ label.field .cselect { font-family: var(--sans); text-transform: none; letter-sp
 .edit-banner { margin-bottom: 18px; padding: 10px 14px; border-radius: var(--r); background: color-mix(in srgb, var(--butter) 30%, transparent); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .hw.half .ev .t { font-size: 16px !important; line-height: 1.25; }
 .hw.half .ev .when { font-size: 10.5px; }
+
+.mp-menu { z-index: 210; }
